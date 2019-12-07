@@ -40,7 +40,7 @@ tags:
 
 完成之后，尝试下发现还是无法登录，检查无果。。没办法，只能查日志
 
-![avatar](/images/ssh-login-error.jpg)
+![avatar](./ssh/ssh-login-error.jpg)
 
 恍然大悟这里还有个小坑，文件夹权限不匹配也是无法登录的~
 

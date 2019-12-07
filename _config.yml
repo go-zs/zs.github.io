@@ -40,7 +40,8 @@ external_link:
   exclude: ''
 filename_case: 0
 render_drafts: false
-post_asset_folder: false
+# 资源文件夹
+post_asset_folder: true
 relative_link: false
 future: true
 highlight:
@@ -99,3 +100,4 @@ deploy:
   type: git
   repo: "git@github.com:go-zs/go-zs.github.io.git"
   branch: master
+

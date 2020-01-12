@@ -20,27 +20,31 @@ Docker 分为 CE 和 EE 两大版本。CE 即社区版（免费，支持周期 7
     ```shell
     sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
     ```
+3. 安装 docker-ce
+   ```shell
+   sudo yum install docker-ce
+   ```
 
-3. 配置docker开机启动并启动docker服务
+4. 配置docker开机启动并启动docker服务
     ```shell
     sudo systemctl enable docker.service
     sudo systemctl start docker.service
     ```
 
-4. 此时docker已经启动，我们需要将当前用户添加至 `docker`用户组，这样就可以免`sudo`
+5. 此时docker已经启动，我们需要将当前用户添加至 `docker`用户组，这样就可以免`sudo`
     ```shell
     sudo usermod -aG docker $(whoami)
     ```
 
-5. 使用执行完成后执行 `cat /etc/group` 检查下创建是否有效
+6. 使用执行完成后执行 `cat /etc/group` 检查下创建是否有效
 
-6. 退出当前用户重新登录以便权限配置生效，或者重启 `docker-daemon`
+7. 退出当前用户重新登录以便权限配置生效，或者重启 `docker-daemon`
 
     ```shell
     sudo systemctl restart docker
     ```
 
-7. 如果出现提示`dial unix /var/run/docker.sock: connect: permission denied` ，说明需要对当前用户授权
+8. 如果出现提示`dial unix /var/run/docker.sock: connect: permission denied` ，说明需要对当前用户授权
 
     ```shell
     sudo chmod a+rw /var/run/docker.sock

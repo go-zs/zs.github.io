@@ -14,7 +14,7 @@ tags:
 
 Goland菜单: Tools -> Deployment -> Configuration
 
-![deployment](remote/deployment.jpg)
+![deployment](remote/deployment.png)
 
 
 ### 配置本地目录与远端的映射
@@ -28,7 +28,7 @@ Goland菜单: Tools -> Deployment -> Configuration
 
 开启自动同步后，`goland`会在`save`的时候自动同步远端
 
-![auto](remote/auto.jpg)
+![auto](remote/auto.png)
 
 
 ## 2.服务端安装Delve

@@ -34,6 +34,6 @@ log-slave-updates=ON（可选）--高可用切换，最好设置ON
 
 ## 功能
 
-`GTID`的最大特性就是它的`Failover`能力，如下架构，当主库`A crash`时，需要进行主从切换，将B或C其中一台提升为主，传统模式我们无法确认哪台数据较新，由于同一个事务在每台机器上所在的`binlog`名字和位置都不一样，那么怎么找到C当前同步停止点，对应B的master_log_file和master_log_pos，需要通过程序对比或者借助`MHA`等工具。
+`GTID`的最大特性就是它的`Failover`能力，如下架构，当主库`A crash`时，需要进行主从切换，将B或C其中一台提升为主，传统模式我们无法确认哪台数据较新，由于同一个事务在每台机器上所在的`binlog`名字和位置都不一样，那么怎么找到C当前同步停止点，对应B的`master_log_file`和`master_log_pos`，需要通过程序对比或者借助`MHA`等工具。
 
 `GTID`出现后，这个问题就显得非常简单。由于同一事务的`GTID`在所有节点上的值一致，那么根据C当前停止点的`GTID`就能唯一定位到B上的`GTID`。甚至由于`MASTER_AUTO_POSITION`功能的出现，我们都不需要知道`GTID`的具体值，直接使用`CHANGE MASTER TO MASTER_HOST='xxx'`, `MASTER_AUTO_POSITION=1`命令就可以直接完成`failover`的工作。

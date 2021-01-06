@@ -107,3 +107,28 @@ custom_channels:
 ### 7.删除环境中的某个包
 
    使用命令conda remove --name your_env_name  package_name 即可。
+
+
+### 8.导出依赖包
+
+> conda list -e > requirements.txt
+
+
+### 9.安装依赖
+
+指定文件安装依赖
+
+> conda install -y -f requirements.txt
+
+`conda`失败的时候执行`pip install`
+
+> while read requirement; do conda install --yes $requirement || pip install $requirement; done < requirements.txt 
+
+
+### 10.导出conda环境
+
+> conda env export > freeze.yml
+
+### 11. 导入conda环境
+
+> conda env create -f freeze.yml

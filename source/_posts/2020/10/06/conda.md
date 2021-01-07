@@ -72,8 +72,6 @@ custom_channels:
 
 
 ### 2.创建python虚拟环境
-
-
      使用 conda create -n your_env_name python=X.X（2.7、3.6等)命令创建python版本为X.X、名字为your_env_name的虚拟环境。your_env_name文件可以在Anaconda安装目录envs文件下找到。
 
 ### 3.使用激活(或切换不同python版本)的虚拟环境

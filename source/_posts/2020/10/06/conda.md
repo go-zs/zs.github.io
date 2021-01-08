@@ -76,15 +76,7 @@ custom_channels:
 
 ### 3.使用激活(或切换不同python版本)的虚拟环境
 
-    打开命令行输入python --version可以检查当前python的版本。
-
-    使用如下命令即可 激活你的虚拟环境(即将python的版本改变)。
-
-    Linux:  source activate your_env_name(虚拟环境名称)
-
-    Windows: activate your_env_name(虚拟环境名称)
-
-   这是再使用python --version可以检查当前python版本是否为想要的。
+> conda activate py36
 
 ### 4.对虚拟环境中安装额外的包
 
@@ -92,11 +84,7 @@ custom_channels:
 
 ### 5.关闭虚拟环境(即从当前环境退出返回使用PATH环境中的默认python版本)
 
-   使用如下命令即可。
-
-   Linux: source deactivate
-
-   Windows: deactivate
+> conda deactivate
 
 ### 6.删除虚拟环境
 

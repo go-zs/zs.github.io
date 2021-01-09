@@ -1,5 +1,5 @@
 ---
-title: Python最好的数据库操作库SQLAlchemy——(1)连接与基本ORM操作
+title: Python SQLAlchemy库——(1)连接与基本ORM操作
 date: 2021-01-07 17:55:55
 tags:
 ---

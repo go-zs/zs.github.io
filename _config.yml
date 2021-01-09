@@ -107,7 +107,5 @@ search:
   path: search.xml
   content: true
   field: all
-  format: html
-  limit: 10000
 
 

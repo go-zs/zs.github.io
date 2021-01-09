@@ -2,6 +2,8 @@
 title: conda
 date: 2020-10-06 15:58:03
 tags:
+categories: 
+- 工具
 ---
 
 `conda`是`Anoconda`提供的包管理工具。

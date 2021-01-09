@@ -2,6 +2,10 @@
 title: go(23)--golang常用设计模式
 date: 2020-10-22 20:33:28
 tags:
+- golang
+- design patterns
+categories: 
+- golang
 ---
 
 设计模式（Design pattern）代表了最佳的实践，通常面向对象语言会有很多常见的设计范式，`golang`作为一门不够彻底的面向对象编程语言，也有很多常见的设计范式。

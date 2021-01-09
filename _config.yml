@@ -105,7 +105,8 @@ deploy:
 
 search:
   path: search.xml
-  field: post
+  content: true
+  field: all
   format: html
   limit: 10000
 

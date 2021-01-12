@@ -2,6 +2,10 @@
 title: Python Typing系统用法总结
 date: 2021-01-08 14:35:21
 tags:
+- python
+- typing
+categories:
+- python
 ---
 
 `Python3.9`版本发布后再次提升了`Typing`系统的易用性。下面对当前的`Typing`做一个用法的总结。

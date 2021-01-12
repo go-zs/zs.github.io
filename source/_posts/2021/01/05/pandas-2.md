@@ -2,6 +2,10 @@
 title: Python强大的数据分析利器——Pandas(2)
 date: 2021-01-05 11:54:51
 tags:
+- python
+- pandas
+categories:
+- python
 ---
 
 这篇主要总结下`Pandas`数据分析相关操作。

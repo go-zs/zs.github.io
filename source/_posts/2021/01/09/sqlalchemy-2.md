@@ -2,6 +2,10 @@
 title: Python SQLAlchemy库——(2)create_engine分析
 date: 2021-01-09 10:03:04
 tags:
+- python
+- sqlalchemy
+categories:
+- python
 ---
 
 `engine`是`SQLAlchemy`的核心，是`SQLAlchemy`实现对各种数据库统一操作的基础。

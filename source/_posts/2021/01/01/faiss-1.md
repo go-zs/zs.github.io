@@ -2,6 +2,10 @@
 title: faiss使用文档（1）—— 环境搭建
 date: 2021-01-01 15:39:50
 tags:
+- python
+- faiss
+categories:
+- python
 ---
 
 `faiss`是`Facebook Ai Research`开源的一款向量检索工具。这篇介绍一下它的环境搭建。

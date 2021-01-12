@@ -2,6 +2,10 @@
 title: faiss使用文档（2）—— 基础
 date: 2021-01-05 16:31:26
 tags:
+- python
+- faiss
+categories:
+- python
 ---
 
 这篇汇总介绍一下`faiss`里面用到的算法及概念。

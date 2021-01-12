@@ -2,6 +2,10 @@
 title: Python强大的数据分析利器——Pandas(1)
 date: 2021-01-04 08:10:40
 tags:
+- python
+- pandas
+categories:
+- python
 ---
 
 `Pandas`是我最喜欢的`python`库之一，不只是功能强大，它的`API`也是非常的优雅。

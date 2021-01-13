@@ -1,5 +1,5 @@
 ---
-title: Python Typing系统用法总结
+title: Python(1)——Typing系统用法总结
 date: 2021-01-08 14:35:21
 tags:
 - python

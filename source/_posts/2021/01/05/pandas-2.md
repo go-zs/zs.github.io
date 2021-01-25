@@ -281,3 +281,11 @@ Out[71]:
 df = df.sample(frac=0.3) # frac 返回的比例 0.3代表30%
 df.sample(frac=0.1).reset_index(drop=True) # 重建索引
 ```
+
+## 按行遍历
+
+```python
+# 对于每一行， 可以通过列名name访问对应的元素
+for row in df.iterrows():
+    print(row['c1'], row['c2'])
+```

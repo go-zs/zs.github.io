@@ -26,7 +26,7 @@ type DB struct {
 
 ## ColScanner, Queryer, Execer
 
-`sqlx`中定义了几种操作接口，`ColScanner`接口是读取结果，`Queryer`定义了查询行为，`Execer`则是执行`SQL`。
+`sqlx`中定义了下面两种操作接口，`ColScanner`接口是读取结果，`Queryer`定义了查询行为。
 
 ```golang
 // ColScanner is an interface used by MapScan and SliceScan
@@ -43,10 +43,6 @@ type Queryer interface {
 	QueryRowx(query string, args ...interface{}) *Row
 }
 
-// Execer is an interface used by MustExec and LoadFile
-type Execer interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-}
 ```
 
 `SliceScan`和`MapScan`方法接收`ColScanner`作为参数，实现了高扩展性。
@@ -104,8 +100,38 @@ func MapScan(r ColScanner, dest map[string]interface{}) error {
 }
 ```
 
+`Select`和`Get`方法支持`Queryer`这个接口作为入参，实现数据的获取。
 
-## Get, Select
+```golang
+// Select executes a query using the provided Queryer, and StructScans each row
+// into dest, which must be a slice.  If the slice elements are scannable, then
+// the result set must have only one column.  Otherwise, StructScan is used.
+// The *sql.Rows are closed automatically.
+// Any placeholder parameters are replaced with supplied args.
+func Select(q Queryer, dest interface{}, query string, args ...interface{}) error {
+	rows, err := q.Queryx(query, args...)
+	if err != nil {
+		return err
+	}
+	// if something happens here, we want to make sure the rows are Closed
+	defer rows.Close()
+	return scanAll(rows, dest, false)
+}
+
+// Get does a QueryRow using the provided Queryer, and scans the resulting row
+// to dest.  If dest is scannable, the result must only have one column.  Otherwise,
+// StructScan is used.  Get will return sql.ErrNoRows like row.Scan would.
+// Any placeholder parameters are replaced with supplied args.
+// An error is returned if the result set is empty.
+func Get(q Queryer, dest interface{}, query string, args ...interface{}) error {
+	r := q.QueryRowx(query, args...)
+	return r.scanAny(dest, false)
+}
+```
+
+
+
+## DB
 
 标准库`sql`获取查询数据，需要遍历`rows`，`sqlx`提供了`Get`和`Select`两个方法，可以将查询结果直接映射到传入的结构体上。
 

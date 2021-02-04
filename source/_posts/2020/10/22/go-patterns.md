@@ -1,5 +1,5 @@
 ---
-title: go(23)--golang常用设计模式
+title: golang系列(23)--golang常用设计模式
 date: 2020-10-22 20:33:28
 tags:
 - golang

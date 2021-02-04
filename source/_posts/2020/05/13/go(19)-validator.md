@@ -2,6 +2,9 @@
 title: golang系列(19)——Validator参数校验
 date: 2020-05-13 10:19:20
 tags:
+- golang
+categories:
+- golang
 ---
 
 http服务中参数校验是非常重要的一环，[go-playground/validator](https://github.com/go-playground/validator)是golang非常好用的开源库，它通过给`struct`添加`tag`的方式，自动完成参数的校验。

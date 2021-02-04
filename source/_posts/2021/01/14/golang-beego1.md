@@ -1,7 +1,10 @@
 ---
-title: go(32)--框架beego源码阅读(1)
+title: golang系列(32)--框架beego源码阅读(1)
 date: 2021-01-14 14:39:02
 tags:
+- golang
+categories:
+- golang
 ---
 
 `beego`作为国人的出品的`web`框架，工作中一直也没用过，能获得这么多`star`必然有过人之处，好好学习一下它的源码。

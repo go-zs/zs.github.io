@@ -3,6 +3,9 @@ title: golang系列(2)——strings包
 date: 2019-09-09 08:39:40
 updated: 2019-09-09 08:39:40
 tags:
+- golang
+categories:
+- golang
 ---
 
 golang的官方库strings库非常的强大，用了很久感觉需要整理一下相关api才能更好的掌握。

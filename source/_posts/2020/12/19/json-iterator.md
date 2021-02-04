@@ -1,7 +1,10 @@
 ---
-title: go(29)--高性能JSON解析器`jsoniter`
+title: golang系列(29)--高性能JSON解析器`jsoniter`
 date: 2020-12-19 14:01:08
 tags:
+- golang
+categories:
+- golang
 ---
 
 `jsoniter`是一个完全兼容官方`json`库的一个高性能`json`解析器。

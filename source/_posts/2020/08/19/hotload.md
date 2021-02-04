@@ -1,7 +1,10 @@
 ---
-title: go(21)--golang服务热更新
+title: golang系列(21)--golang服务热更新
 date: 2020-08-19 15:05:36
 tags:
+- golang
+categories:
+- golang
 ---
 
 线上服务经常需要更新，通常的做法是，通过前端的负载均衡（如nginx）来保证升级时至少有一个服务可用，依次（灰度）升级。

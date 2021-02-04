@@ -1,7 +1,10 @@
 ---
-title: go(24)--逃逸分析
+title: golang系列(24)--逃逸分析
 date: 2020-12-09 13:40:26
 tags:
+- golang
+categories:
+- golang
 ---
 
 我们都知道`golang`是一门有`GC`的语言，并且频繁的`GC`会带来很大的性能开销。是不是所有生成对象都会产生`GC`呢？这个问题我们需要了解`golang`的逃逸分析。

@@ -1,7 +1,10 @@
 ---
-title: go(23)--goland简化单元测试的利器-testify
+title: golang系列(23)--goland简化单元测试的利器-testify
 date: 2020-09-15 11:15:22
 tags:
+- golang
+categories:
+- golang
 ---
 
 `golang`自带了一个非常强大的单元测试组件，让我们可以非常方便的编写单元测试，美中不足的是它缺少断言功能，很多时候不得不写很多的`if`判断。`testify`是一个非常强大的测试包，提供了很多非常实用的断言功能，大大提升了单元测试的可读性。

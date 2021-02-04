@@ -2,6 +2,9 @@
 title: golang系列(20)-benchmark
 date: 2020-05-24 18:39:20
 tags:
+- golang
+categories:
+- golang
 ---
 
 go自带的benchmark是一个性能测试的利器，利用这个工具，开发者可以方便快捷地在测试一个函数在串行或并发环境下的基准表现。

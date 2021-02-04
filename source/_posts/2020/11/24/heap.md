@@ -1,7 +1,10 @@
 ---
-title: go(23)--golang标准库container
+title: golang系列(23)--golang标准库container
 date: 2020-11-24 10:50:38
 tags:
+- golang
+categories:
+- golang
 ---
 
 `golang`标准库`container`实现了三个复杂的数据结构：堆，链表，环。在一些特定的场景下，这三个数据结构可以非常方便的帮我们解决问题。

@@ -1,7 +1,10 @@
 ---
-title: go(30)--build参数全解析
+title: golang系列(30)--build参数全解析
 date: 2020-12-25 14:42:05
 tags:
+- golang
+categories:
+- golang
 ---
 
 `golang`编译速度非常快，平时一般也就用到`go build`，其实`build`功能异常的强大。

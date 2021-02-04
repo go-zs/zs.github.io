@@ -1,7 +1,10 @@
 ---
-title: go(22)--goland远程调试
+title: golang系列(22)--goland远程调试
 date: 2020-08-25 10:09:23
 tags:
+- golang
+categories:
+- golang
 ---
 
 很多时候需要在服务器上进行调试，`goland`配合`golang`的`debug`工具`dlv`可以非常容易的实现远程开发调试。

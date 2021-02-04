@@ -3,6 +3,9 @@ title: golang系列(3)——struct tags
 date: 2019-09-16 07:48:40
 updated: 2019-09-16 07:48:40
 tags:
+- golang
+categories:
+- golang
 ---
 
 golang tag的语法是非常具有语言特色的，当然对于新手来说，也是非常懵逼。今天来总结一下tags的用法。

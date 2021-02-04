@@ -1,7 +1,10 @@
 ---
-title: go(27)--go-generate
+title: golang系列(27)--go-generate
 date: 2020-12-15 09:48:05
 tags:
+- golang
+categories:
+- golang
 ---
 
 

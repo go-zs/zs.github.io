@@ -1,7 +1,10 @@
 ---
-title: go(25)--SQL生成库squirrel
+title: golang系列(25)--SQL生成库squirrel
 date: 2020-12-10 10:04:45
 tags:
+- golang
+categories:
+- golang
 ---
 
 在`golang`中如果我们不用`ORM`框架的话，需要我们自己手动拼接`SQL`，`squirrel`是一个能够帮助我们简化这个过程的第三方库。

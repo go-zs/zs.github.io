@@ -1,7 +1,10 @@
 ---
-title: go(28)--gin源码阅读(3)
+title: golang系列(28)--gin源码阅读(3)
 date: 2020-12-19 14:19:28
 tags:
+- golang
+categories:
+- golang
 ---
 
 学习一下`gin`是如何处理响应以及管理并发请求的。

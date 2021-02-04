@@ -3,6 +3,9 @@ title: golang系列(1)——pprof性能分析
 date: 2019-09-01 13:04:29
 updated: 2019-09-01 13:04:29
 tags:
+- golang
+categories:
+- golang
 ---
 
 pprof是golang runtime内置的性能分析工具。

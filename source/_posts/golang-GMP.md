@@ -3,6 +3,9 @@ title: golang系列(4)——协程调度
 date: 2019-09-30 15:47:37
 updated: 2019-09-30 15:47:37
 tags:
+- golang
+categories:
+- golang
 ---
 
 golang最大的特色就是随处可见的goroutine，一个`go`关键字就可以实现原生的并发，main函数本身也是一个gouroutine。无需关心其实现，就可以轻松实现一个高并发的程序。但是，如果能够理解goroutine的调度，对于写出高质量的程序帮助很大。

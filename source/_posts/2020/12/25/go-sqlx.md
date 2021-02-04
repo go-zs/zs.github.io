@@ -1,7 +1,10 @@
 ---
-title: go(30)--sqlx源码分析
+title: golang系列(30)--sqlx源码分析
 date: 2020-12-25 16:52:02
 tags:
+- golang
+categories:
+- golang
 ---
 
 `sqlx`是标准库`sql`最强的扩展，大大简化了`sql`操作。

@@ -290,5 +290,111 @@ func (mq *LeaseExpiredNotifier) Unregister() *LeaseWithTime {
 }
 ```
 
+## loop
+
+`newLessor`方法在新建`lessor`之后会起一个`goroutine`循环检查租约。
+
+```golang
+func newLessor(lg *zap.Logger, b backend.Backend, cfg LessorConfig, ci cindex.ConsistentIndexer) *lessor {
+	checkpointInterval := cfg.CheckpointInterval
+	expiredLeaseRetryInterval := cfg.ExpiredLeasesRetryInterval
+	if checkpointInterval == 0 {
+		checkpointInterval = defaultLeaseCheckpointInterval
+	}
+	if expiredLeaseRetryInterval == 0 {
+		expiredLeaseRetryInterval = defaultExpiredleaseRetryInterval
+	}
+	l := &lessor{
+		leaseMap:                  make(map[LeaseID]*Lease),
+		itemMap:                   make(map[LeaseItem]LeaseID),
+		leaseExpiredNotifier:      newLeaseExpiredNotifier(),
+		leaseCheckpointHeap:       make(LeaseQueue, 0),
+		b:                         b,
+		minLeaseTTL:               cfg.MinLeaseTTL,
+		checkpointInterval:        checkpointInterval,
+		expiredLeaseRetryInterval: expiredLeaseRetryInterval,
+		// 收集失效的租约，缓冲长度16，避免堵塞
+		expiredC: make(chan []*Lease, 16),
+		stopC:    make(chan struct{}),
+		doneC:    make(chan struct{}),
+		lg:       lg,
+		ci:       ci,
+	}
+	l.initAndRecover()
+
+	go l.runLoop()
+
+	return l
+}
+```
+
+500毫秒一次循环检查并撤销过期租约，最后失效的租约都会写入`expiredC`这个channel中。
+
+```golang
+func (le *lessor) runLoop() {
+	defer close(le.doneC)
+
+	for {
+		le.revokeExpiredLeases()
+		le.checkpointScheduledLeases()
+
+		select {
+		case <-time.After(500 * time.Millisecond):
+		case <-le.stopC:
+			return
+		}
+	}
+}
+
+// revokeExpiredLeases finds all leases past their expiry and sends them to expired channel for
+// to be revoked.
+func (le *lessor) revokeExpiredLeases() {
+	var ls []*Lease
+
+	// rate limit
+	revokeLimit := leaseRevokeRate / 2
+
+	le.mu.RLock()
+	if le.isPrimary() {
+		ls = le.findExpiredLeases(revokeLimit)
+	}
+	le.mu.RUnlock()
+
+	if len(ls) != 0 {
+		select {
+		case <-le.stopC:
+			return
+		case le.expiredC <- ls:
+		default:
+			// the receiver of expiredC is probably busy handling
+			// other stuff
+			// let's try this next time after 500ms
+		}
+	}
+}
+
+// checkpointScheduledLeases finds all scheduled lease checkpoints that are due and
+// submits them to the checkpointer to persist them to the consensus log.
+func (le *lessor) checkpointScheduledLeases() {
+	var cps []*pb.LeaseCheckpoint
+
+	// rate limit
+	for i := 0; i < leaseCheckpointRate/2; i++ {
+		le.mu.Lock()
+		// 主节点
+		if le.isPrimary() {
+			cps = le.findDueScheduledCheckpoints(maxLeaseCheckpointBatchSize)
+		}
+		le.mu.Unlock()
+
+		if len(cps) != 0 {
+			le.cp(context.Background(), &pb.LeaseCheckpointRequest{Checkpoints: cps})
+		}
+		if len(cps) < maxLeaseCheckpointBatchSize {
+			return
+		}
+	}
+}
+```
 
 

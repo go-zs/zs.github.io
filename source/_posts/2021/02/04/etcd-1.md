@@ -1,5 +1,5 @@
 ---
-title: golang系列(35)--etcd源码阅读1
+title: golang系列(35)--etcd源码阅读-lease
 date: 2021-02-04 11:05:17
 tags:
 - golang

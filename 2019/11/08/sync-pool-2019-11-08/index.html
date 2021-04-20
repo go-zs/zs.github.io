@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="使用gorm的时候，连接池配置上出现了些问题，查看源码发现，其连接池部分直接用的标准库database&#x2F;sql中的连接池实现。花了些时间好好研究了一下它的源码实现。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang系列(7)——sql连接池源码分析">
+<meta property="og:url" content="http://yoursite.com/2019/11/08/sync-pool-2019-11-08/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="使用gorm的时候，连接池配置上出现了些问题，查看源码发现，其连接池部分直接用的标准库database&#x2F;sql中的连接池实现。花了些时间好好研究了一下它的源码实现。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-11-08T08:07:38.000Z">
+<meta property="article:modified_time" content="2019-11-08T08:07:38.000Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2019/11/08/sync-pool-2019-11-08/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>golang系列(7)——sql连接池源码分析 | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/08/sync-pool-2019-11-08/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          golang系列(7)——sql连接池源码分析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-11-08 16:07:38" itemprop="dateCreated datePublished" datetime="2019-11-08T16:07:38+08:00">2019-11-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>使用<code>gorm</code>的时候，连接池配置上出现了些问题，查看源码发现，其连接池部分直接用的标准库<code>database/sql</code>中的连接池实现。花了些时间好好研究了一下它的源码实现。</p>
+<a id="more"></a>
+
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// DB is a database handle representing a pool of zero or more</span></span><br><span class="line"><span class="comment">// underlying connections. It's safe for concurrent use by multiple</span></span><br><span class="line"><span class="comment">// goroutines.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// The sql package creates and frees connections automatically; it</span></span><br><span class="line"><span class="comment">// also maintains a free pool of idle connections. If the database has</span></span><br><span class="line"><span class="comment">// a concept of per-connection state, such state can be reliably observed</span></span><br><span class="line"><span class="comment">// within a transaction (Tx) or connection (Conn). Once DB.Begin is called, the</span></span><br><span class="line"><span class="comment">// returned Tx is bound to a single connection. Once Commit or</span></span><br><span class="line"><span class="comment">// Rollback is called on the transaction, that transaction's</span></span><br><span class="line"><span class="comment">// connection is returned to DB's idle connection pool. The pool size</span></span><br><span class="line"><span class="comment">// can be controlled with SetMaxIdleConns.</span></span><br><span class="line"><span class="keyword">type</span> DB <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Atomic access only. At top of struct to prevent mis-alignment</span></span><br><span class="line">	<span class="comment">// on 32-bit platforms. Of type time.Duration.</span></span><br><span class="line">	waitDuration <span class="keyword">int64</span> <span class="comment">// Total time waited for new connections.</span></span><br><span class="line"></span><br><span class="line">	connector driver.Connector</span><br><span class="line">	<span class="comment">// numClosed is an atomic counter which represents a total number of</span></span><br><span class="line">	<span class="comment">// closed connections. Stmt.openStmt checks it before cleaning closed</span></span><br><span class="line">	<span class="comment">// connections in Stmt.css.</span></span><br><span class="line">	numClosed <span class="keyword">uint64</span></span><br><span class="line"></span><br><span class="line">	mu           sync.Mutex  </span><br><span class="line">	freeConn     []*driverConn   			 <span class="comment">// 空闲连接连接池</span></span><br><span class="line">	connRequests <span class="keyword">map</span>[<span class="keyword">uint64</span>]<span class="keyword">chan</span> connRequest <span class="comment">// 连接等待channel</span></span><br><span class="line">	nextRequest  <span class="keyword">uint64</span>                      <span class="comment">// Next key to use in connRequests.</span></span><br><span class="line">	numOpen      <span class="keyword">int</span>                         <span class="comment">// 连接打开数量</span></span><br><span class="line">	openerCh          <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	resetterCh        <span class="keyword">chan</span> *driverConn</span><br><span class="line">	closed            <span class="keyword">bool</span></span><br><span class="line">	dep               <span class="keyword">map</span>[finalCloser]depSet</span><br><span class="line">	lastPut           <span class="keyword">map</span>[*driverConn]<span class="keyword">string</span> <span class="comment">// stacktrace of last conn's put; debug only</span></span><br><span class="line">	maxIdle           <span class="keyword">int</span>                    <span class="comment">// 最大空闲连接数， &lt;= 0时为默认值defaultMaxIdleConns = 2</span></span><br><span class="line">	maxOpen           <span class="keyword">int</span>                    <span class="comment">// 最大连接数， &lt;=0 时为不限制</span></span><br><span class="line">	maxLifetime       time.Duration          <span class="comment">// connection最大存活时间</span></span><br><span class="line">	cleanerCh         <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	waitCount         <span class="keyword">int64</span>                  <span class="comment">// 连接等待总数</span></span><br><span class="line">	maxIdleClosed     <span class="keyword">int64</span> 				 <span class="comment">// 空闲连接关闭连接总数</span></span><br><span class="line">	maxLifetimeClosed <span class="keyword">int64</span> 				 <span class="comment">// </span></span><br><span class="line"></span><br><span class="line">	stop <span class="function"><span class="keyword">func</span><span class="params">()</span> // <span class="title">stop</span> <span class="title">cancels</span> <span class="title">the</span> <span class="title">connection</span> <span class="title">opener</span> <span class="title">and</span> <span class="title">the</span> <span class="title">session</span> <span class="title">resetter</span>.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>DB这个数据结构有两个非常重要的参数，<code>maxOpen</code>和<code>maxLifetime</code>。<code>maxOpen</code>表示连接池的大小，<code>maxLifetime</code>表示连接最长连接时间。这两个参数需要比MySQL设置的<code>max_connections</code>和<code>wait_timeout</code>值小。</p>
+<h2 id="创建连接"><a href="#创建连接" class="headerlink" title="创建连接"></a>创建连接</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Open one new connection</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">openNewConnection</span><span class="params">(ctx context.Context)</span></span> &#123;</span><br><span class="line">	<span class="comment">// maybeOpenNewConnctions has already executed db.numOpen++ before it sent</span></span><br><span class="line">	<span class="comment">// on db.openerCh. This function must execute db.numOpen-- if the</span></span><br><span class="line">	<span class="comment">// connection fails or is closed before returning.</span></span><br><span class="line">	ci, err := db.connector.Connect(ctx)</span><br><span class="line">	db.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> db.mu.Unlock()</span><br><span class="line">	<span class="keyword">if</span> db.closed &#123;</span><br><span class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">			ci.Close()</span><br><span class="line">		&#125;</span><br><span class="line">		db.numOpen--</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		db.numOpen--</span><br><span class="line">		db.putConnDBLocked(<span class="literal">nil</span>, err)</span><br><span class="line">		db.maybeOpenNewConnections()</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	dc := &amp;driverConn&#123;</span><br><span class="line">		db:        db,</span><br><span class="line">		createdAt: nowFunc(),</span><br><span class="line">		ci:        ci,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> db.putConnDBLocked(dc, err) &#123;</span><br><span class="line">		db.addDepLocked(dc, dc)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		db.numOpen--</span><br><span class="line">		ci.Close()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+<h2 id="放置连接"><a href="#放置连接" class="headerlink" title="放置连接"></a>放置连接</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// putConn adds a connection to the db's free pool.</span></span><br><span class="line"><span class="comment">// err is optionally the last error that occurred on this connection.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">putConn</span><span class="params">(dc *driverConn, err error, resetSession <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	db.mu.Lock()</span><br><span class="line">	<span class="keyword">if</span> !dc.inUse &#123;</span><br><span class="line">		<span class="keyword">if</span> debugGetPut &#123;</span><br><span class="line">			fmt.Printf(<span class="string">"putConn(%v) DUPLICATE was: %s\n\nPREVIOUS was: %s"</span>, dc, stack(), db.lastPut[dc])</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"sql: connection returned that was never out"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> debugGetPut &#123;</span><br><span class="line">		db.lastPut[dc] = stack()</span><br><span class="line">	&#125;</span><br><span class="line">	dc.inUse = <span class="literal">false</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, fn := <span class="keyword">range</span> dc.onPut &#123;</span><br><span class="line">		fn()</span><br><span class="line">	&#125;</span><br><span class="line">	dc.onPut = <span class="literal">nil</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err == driver.ErrBadConn &#123;</span><br><span class="line">		<span class="comment">// Don't reuse bad connections.</span></span><br><span class="line">		<span class="comment">// Since the conn is considered bad and is being discarded, treat it</span></span><br><span class="line">		<span class="comment">// as closed. Don't decrement the open count here, finalClose will</span></span><br><span class="line">		<span class="comment">// take care of that.</span></span><br><span class="line">		db.maybeOpenNewConnections()</span><br><span class="line">		db.mu.Unlock()</span><br><span class="line">		dc.Close()</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> putConnHook != <span class="literal">nil</span> &#123;</span><br><span class="line">		putConnHook(db, dc)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> db.closed &#123;</span><br><span class="line">		<span class="comment">// Connections do not need to be reset if they will be closed.</span></span><br><span class="line">		<span class="comment">// Prevents writing to resetterCh after the DB has closed.</span></span><br><span class="line">		resetSession = <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> resetSession &#123;</span><br><span class="line">		<span class="keyword">if</span> _, resetSession = dc.ci.(driver.SessionResetter); resetSession &#123;</span><br><span class="line">			<span class="comment">// Lock the driverConn here so it isn't released until</span></span><br><span class="line">			<span class="comment">// the connection is reset.</span></span><br><span class="line">			<span class="comment">// The lock must be taken before the connection is put into</span></span><br><span class="line">			<span class="comment">// the pool to prevent it from being taken out before it is reset.</span></span><br><span class="line">			dc.Lock()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	added := db.putConnDBLocked(dc, <span class="literal">nil</span>)</span><br><span class="line">	db.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> !added &#123;</span><br><span class="line">		<span class="keyword">if</span> resetSession &#123;</span><br><span class="line">			dc.Unlock()</span><br><span class="line">		&#125;</span><br><span class="line">		dc.Close()</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> !resetSession &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// If the resetterCh is blocking then mark the connection</span></span><br><span class="line">		<span class="comment">// as bad and continue on.</span></span><br><span class="line">		dc.lastErr = driver.ErrBadConn</span><br><span class="line">		dc.Unlock()</span><br><span class="line">	<span class="keyword">case</span> db.resetterCh &lt;- dc:</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="等待连接"><a href="#等待连接" class="headerlink" title="等待连接"></a>等待连接</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">conn</span><span class="params">(ctx context.Context, strategy connReuseStrategy)</span> <span class="params">(*driverConn, error)</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Out of free connections or we were asked not to use one. If we're not</span></span><br><span class="line">	<span class="comment">// allowed to open any more connections, make a request and wait.</span></span><br><span class="line">	<span class="keyword">if</span> db.maxOpen &gt; <span class="number">0</span> &amp;&amp; db.numOpen &gt;= db.maxOpen &#123;</span><br><span class="line">		<span class="comment">// Make the connRequest channel. It's buffered so that the</span></span><br><span class="line">		<span class="comment">// connectionOpener doesn't block while waiting for the req to be read.</span></span><br><span class="line">		req := <span class="built_in">make</span>(<span class="keyword">chan</span> connRequest, <span class="number">1</span>)</span><br><span class="line">		reqKey := db.nextRequestKeyLocked()</span><br><span class="line">		db.connRequests[reqKey] = req</span><br><span class="line">		db.waitCount++</span><br><span class="line">		db.mu.Unlock()</span><br><span class="line"></span><br><span class="line">		waitStart := time.Now()</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Timeout the connection request with the context.</span></span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">			<span class="comment">// Remove the connection request and ensure no value has been sent</span></span><br><span class="line">			<span class="comment">// on it after removing.</span></span><br><span class="line">			db.mu.Lock()</span><br><span class="line">			<span class="built_in">delete</span>(db.connRequests, reqKey)</span><br><span class="line">			db.mu.Unlock()</span><br><span class="line"></span><br><span class="line">			atomic.AddInt64(&amp;db.waitDuration, <span class="keyword">int64</span>(time.Since(waitStart)))</span><br><span class="line"></span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">default</span>:</span><br><span class="line">			<span class="keyword">case</span> ret, ok := &lt;-req:</span><br><span class="line">				<span class="keyword">if</span> ok &amp;&amp; ret.conn != <span class="literal">nil</span> &#123;</span><br><span class="line">					db.putConn(ret.conn, ret.err, <span class="literal">false</span>)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, ctx.Err()</span><br><span class="line">		<span class="keyword">case</span> ret, ok := &lt;-req:</span><br><span class="line">			atomic.AddInt64(&amp;db.waitDuration, <span class="keyword">int64</span>(time.Since(waitStart)))</span><br><span class="line"></span><br><span class="line">			<span class="keyword">if</span> !ok &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span>, errDBClosed</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> ret.err == <span class="literal">nil</span> &amp;&amp; ret.conn.expired(lifetime) &#123;</span><br><span class="line">				ret.conn.Close()</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span>, driver.ErrBadConn</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> ret.conn == <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span>, ret.err</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// Lock around reading lastErr to ensure the session resetter finished.</span></span><br><span class="line">			ret.conn.Lock()</span><br><span class="line">			err := ret.conn.lastErr</span><br><span class="line">			ret.conn.Unlock()</span><br><span class="line">			<span class="keyword">if</span> err == driver.ErrBadConn &#123;</span><br><span class="line">				ret.conn.Close()</span><br><span class="line">				<span class="keyword">return</span> <span class="literal">nil</span>, driver.ErrBadConn</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> ret.conn, ret.err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="连接清理"><a href="#连接清理" class="headerlink" title="连接清理"></a>连接清理</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">connectionCleaner</span><span class="params">(d time.Duration)</span></span> &#123;</span><br><span class="line">	<span class="keyword">const</span> minInterval = time.Second</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> d &lt; minInterval &#123;</span><br><span class="line">		d = minInterval</span><br><span class="line">	&#125;</span><br><span class="line">	t := time.NewTimer(d)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-t.C:</span><br><span class="line">		<span class="keyword">case</span> &lt;-db.cleanerCh: <span class="comment">// maxLifetime was changed or db was closed.</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		db.mu.Lock()</span><br><span class="line">		d = db.maxLifetime</span><br><span class="line">		<span class="keyword">if</span> db.closed || db.numOpen == <span class="number">0</span> || d &lt;= <span class="number">0</span> &#123;</span><br><span class="line">			db.cleanerCh = <span class="literal">nil</span></span><br><span class="line">			db.mu.Unlock()</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		expiredSince := nowFunc().Add(-d)</span><br><span class="line">		<span class="keyword">var</span> closing []*driverConn</span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(db.freeConn); i++ &#123;</span><br><span class="line">			c := db.freeConn[i]</span><br><span class="line">			<span class="keyword">if</span> c.createdAt.Before(expiredSince) &#123;</span><br><span class="line">				closing = <span class="built_in">append</span>(closing, c)</span><br><span class="line">				last := <span class="built_in">len</span>(db.freeConn) - <span class="number">1</span></span><br><span class="line">				db.freeConn[i] = db.freeConn[last]</span><br><span class="line">				db.freeConn[last] = <span class="literal">nil</span></span><br><span class="line">				db.freeConn = db.freeConn[:last]</span><br><span class="line">				i--</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		db.maxLifetimeClosed += <span class="keyword">int64</span>(<span class="built_in">len</span>(closing))</span><br><span class="line">		db.mu.Unlock()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> _, c := <span class="keyword">range</span> closing &#123;</span><br><span class="line">			c.Close()</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> d &lt; minInterval &#123;</span><br><span class="line">			d = minInterval</span><br><span class="line">		&#125;</span><br><span class="line">		t.Reset(d)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2019/11/01/byte-2019-11-01/" rel="next" title="golang系列(6)——byte操作">
+                  <i class="fa fa-chevron-left"></i> golang系列(6)——byte操作
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2019/11/09/docker%E5%AE%89%E8%A3%85/" rel="prev" title="CentOS安装docker教程">
+                  CentOS安装docker教程 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#创建连接"><span class="nav-number">1.</span> <span class="nav-text">创建连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#放置连接"><span class="nav-number">2.</span> <span class="nav-text">放置连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#等待连接"><span class="nav-number">3.</span> <span class="nav-text">等待连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#连接清理"><span class="nav-number">4.</span> <span class="nav-text">连接清理</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

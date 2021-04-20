@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="Spark SQL是Spark生态系统中非常重要的组件，其前身为Shark。Shark是Spark上的数据仓库，最初设计成与Hive兼容，但是该项目于2014年开始停止开发，转向Spark SQL。Spark SQL全面继承了Shark，并进行了优化。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark入门（3）—— SQL&amp;DataFrame">
+<meta property="og:url" content="http://yoursite.com/2020/12/31/spark-sql/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="Spark SQL是Spark生态系统中非常重要的组件，其前身为Shark。Shark是Spark上的数据仓库，最初设计成与Hive兼容，但是该项目于2014年开始停止开发，转向Spark SQL。Spark SQL全面继承了Shark，并进行了优化。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-12-31T06:53:40.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.269Z">
+<meta property="article:author" content="zs">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2020/12/31/spark-sql/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Spark入门（3）—— SQL&DataFrame | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/12/31/spark-sql/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spark入门（3）—— SQL&DataFrame
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-31 14:53:40" itemprop="dateCreated datePublished" datetime="2020-12-31T14:53:40+08:00">2020-12-31</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><code>Spark SQL</code>是Spark生态系统中非常重要的组件，其前身为Shark。Shark是Spark上的数据仓库，最初设计成与Hive兼容，但是该项目于2014年开始停止开发，转向Spark SQL。Spark SQL全面继承了Shark，并进行了优化。</p>
+<a id="more"></a>
+
+
+<h2 id="Spark-SQL"><a href="#Spark-SQL" class="headerlink" title="Spark SQL"></a>Spark SQL</h2><p>spark SQL是spark的一个模块，主要用于进行结构化数据的处理。它提供的最核心的编程抽象就是DataFrame。</p>
+<p>提供一个编程抽象（DataFrame） 并且作为分布式 SQL 查询引擎</p>
+<p>DataFrame：它可以根据很多源进行构建，包括：结构化的数据文件，hive中的表，外部的关系型数据库，以及RDD</p>
+<p>（1）容易整合</p>
+<p>（2）统一的数据访问方式</p>
+<p>（3）兼容 Hive</p>
+<p>（4）标准的数据连接</p>
+<h2 id="DataFrame"><a href="#DataFrame" class="headerlink" title="DataFrame"></a>DataFrame</h2><p><code>DataFrame</code>是一种以<code>RDD</code>为基础的分布式数据集，类似于传统数据库中的二维表格。<br><code>DataFrame</code>的推出，让<code>Spark</code>具备了处理大规模结构化数据的能力，不仅比原有的<code>RDD</code>转化方式更加简单易用，而且获得了更高的计算性能。<code>Spark</code>能够轻松实现从<code>MySQL</code>到<code>DataFrame</code>的转化，并且支持<code>SQL</code>查询。</p>
+<p>创建一个<code>people.json</code>文件并写入</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="attr">"name"</span>:<span class="string">"Michael"</span>&#125;</span><br><span class="line">&#123;<span class="attr">"name"</span>:<span class="string">"Andy"</span>, <span class="attr">"age"</span>:<span class="number">30</span>&#125;</span><br><span class="line">&#123;<span class="attr">"name"</span>:<span class="string">"Justin"</span>, <span class="attr">"age"</span>:<span class="number">19</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>shell</code>中执行下面语句</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; <span class="keyword">import</span> org.apache.spark.sql.<span class="type">SparkSession</span></span><br><span class="line"><span class="keyword">import</span> org.apache.spark.sql.<span class="type">SparkSession</span></span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span>  spark=<span class="type">SparkSession</span>.builder().getOrCreate()</span><br><span class="line">spark: org.apache.spark.sql.<span class="type">SparkSession</span> = org.apache.spark.sql.<span class="type">SparkSession</span><span class="meta">@e</span>83d546</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">import</span> spark.implicits._</span><br><span class="line"><span class="keyword">import</span> spark.implicits._</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span> df = spark.read.json(<span class="string">"file:///usr/local/Cellar/apache-spark/3.0.1/people.json"</span>)</span><br><span class="line">df: org.apache.spark.sql.<span class="type">DataFrame</span> = [age: bigint, name: string]</span><br></pre></td></tr></table></figure>
+
+<p>然后就可以用生成的<code>df</code>对象执行一系列的操作，这些<code>API</code>和<code>Python</code>中<code>pandas</code>生成的<code>DataFrame</code>非常相似。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 打印模式信息</span></span><br><span class="line">scala&gt; df.printSchema()</span><br><span class="line">root</span><br><span class="line"> |-- age: long (nullable = <span class="literal">true</span>)</span><br><span class="line"> |-- name: string (nullable = <span class="literal">true</span>)</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 选择多列</span></span><br><span class="line">scala&gt; df.select(df(<span class="string">"name"</span>),df(<span class="string">"age"</span>)+<span class="number">1</span>).show()</span><br><span class="line">+-------+---------+</span><br><span class="line">|   name|(age + <span class="number">1</span>)|</span><br><span class="line">+-------+---------+</span><br><span class="line">|<span class="type">Michael</span>|     <span class="literal">null</span>|</span><br><span class="line">|   <span class="type">Andy</span>|       <span class="number">31</span>|</span><br><span class="line">| <span class="type">Justin</span>|       <span class="number">20</span>|</span><br><span class="line">+-------+---------+</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 条件过滤</span></span><br><span class="line">scala&gt; df.filter(df(<span class="string">"age"</span>) &gt; <span class="number">20</span> ).show()</span><br><span class="line">+---+----+</span><br><span class="line">|age|name|</span><br><span class="line">+---+----+</span><br><span class="line">| <span class="number">30</span>|<span class="type">Andy</span>|</span><br><span class="line">+---+----+</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 分组聚合</span></span><br><span class="line">scala&gt; df.groupBy(<span class="string">"age"</span>).count().show()</span><br><span class="line">+----+-----+</span><br><span class="line">| age|count|</span><br><span class="line">+----+-----+</span><br><span class="line">|  <span class="number">19</span>|    <span class="number">1</span>|</span><br><span class="line">|<span class="literal">null</span>|    <span class="number">1</span>|</span><br><span class="line">|  <span class="number">30</span>|    <span class="number">1</span>|</span><br><span class="line">+----+-----+</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 排序</span></span><br><span class="line">scala&gt; df.sort(df(<span class="string">"age"</span>).desc).show()</span><br><span class="line">+----+-------+</span><br><span class="line">| age|   name|</span><br><span class="line">+----+-------+</span><br><span class="line">|  <span class="number">30</span>|   <span class="type">Andy</span>|</span><br><span class="line">|  <span class="number">19</span>| <span class="type">Justin</span>|</span><br><span class="line">|<span class="literal">null</span>|<span class="type">Michael</span>|</span><br><span class="line">+----+-------+</span><br><span class="line"> </span><br><span class="line"><span class="comment">//多列排序</span></span><br><span class="line">scala&gt; df.sort(df(<span class="string">"age"</span>).desc, df(<span class="string">"name"</span>).asc).show()</span><br><span class="line">+----+-------+</span><br><span class="line">| age|   name|</span><br><span class="line">+----+-------+</span><br><span class="line">|  <span class="number">30</span>|   <span class="type">Andy</span>|</span><br><span class="line">|  <span class="number">19</span>| <span class="type">Justin</span>|</span><br><span class="line">|<span class="literal">null</span>|<span class="type">Michael</span>|</span><br><span class="line">+----+-------+</span><br><span class="line"> </span><br><span class="line"><span class="comment">//对列进行重命名</span></span><br><span class="line">scala&gt; df.select(df(<span class="string">"name"</span>).as(<span class="string">"username"</span>),df(<span class="string">"age"</span>)).show()</span><br><span class="line">+--------+----+</span><br><span class="line">|username| age|</span><br><span class="line">+--------+----+</span><br><span class="line">| <span class="type">Michael</span>|<span class="literal">null</span>|</span><br><span class="line">|    <span class="type">Andy</span>|  <span class="number">30</span>|</span><br><span class="line">|  <span class="type">Justin</span>|  <span class="number">19</span>|</span><br><span class="line">+--------+----+</span><br></pre></td></tr></table></figure>
+
+<h2 id="RDD转换成DataFrame"><a href="#RDD转换成DataFrame" class="headerlink" title="RDD转换成DataFrame"></a>RDD转换成DataFrame</h2><ol>
+<li>通过<code>case class</code>创建（反射）</li>
+</ol>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">People</span>(<span class="params">var name:<span class="type">String</span>,var age:<span class="type">Int</span></span>)</span></span><br><span class="line"><span class="class"><span class="title">object</span> <span class="title">TestDataFrame1</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> conf = <span class="keyword">new</span> <span class="type">SparkConf</span>().setAppName(<span class="string">"RDDToDataFrame"</span>).setMaster(<span class="string">"local"</span>)</span><br><span class="line">    <span class="keyword">val</span> sc = <span class="keyword">new</span> <span class="type">SparkContext</span>(conf)</span><br><span class="line">    <span class="keyword">val</span> context = <span class="keyword">new</span> <span class="type">SQLContext</span>(sc)</span><br><span class="line">    <span class="comment">// 将本地的数据读入 RDD， 并将 RDD 与 case class 关联</span></span><br><span class="line">    <span class="keyword">val</span> peopleRDD = sc.textFile(<span class="string">"E:\\666\\people.txt"</span>)</span><br><span class="line">      .map(line =&gt; <span class="type">People</span>(line.split(<span class="string">","</span>)(<span class="number">0</span>), line.split(<span class="string">","</span>)(<span class="number">1</span>).trim.toInt))</span><br><span class="line">    <span class="keyword">import</span> context.implicits._</span><br><span class="line">    <span class="comment">// 将RDD 转换成 DataFrames</span></span><br><span class="line">    <span class="keyword">val</span> df = peopleRDD.toDF</span><br><span class="line">    <span class="comment">//将DataFrames创建成一个临时的视图</span></span><br><span class="line">    df.createOrReplaceTempView(<span class="string">"people"</span>)</span><br><span class="line">    <span class="comment">//使用SQL语句进行查询</span></span><br><span class="line">    context.sql(<span class="string">"select * from people"</span>).show()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>通过<code>structType</code>创建（编程接口）</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">object TestDataFrame2 &#123;</span><br><span class="line">  def main(args: Array[String]): Unit &#x3D; &#123;</span><br><span class="line">    val conf &#x3D; new SparkConf().setAppName(&quot;TestDataFrame2&quot;).setMaster(&quot;local&quot;)</span><br><span class="line">    val sc &#x3D; new SparkContext(conf)</span><br><span class="line">    val sqlContext &#x3D; new SQLContext(sc)</span><br><span class="line">    val fileRDD &#x3D; sc.textFile(&quot;E:\\666\\people.txt&quot;)</span><br><span class="line">    &#x2F;&#x2F; 将 RDD 数据映射成 Row，需要 import org.apache.spark.sql.Row</span><br><span class="line">    val rowRDD: RDD[Row] &#x3D; fileRDD.map(line &#x3D;&gt; &#123;</span><br><span class="line">      val fields &#x3D; line.split(&quot;,&quot;)</span><br><span class="line">      Row(fields(0), fields(1).trim.toInt)</span><br><span class="line">    &#125;)</span><br><span class="line">    &#x2F;&#x2F; 创建 StructType 来定义结构</span><br><span class="line">    val structType: StructType &#x3D; StructType(</span><br><span class="line">      &#x2F;&#x2F;字段名，字段类型，是否可以为空</span><br><span class="line">      StructField(&quot;name&quot;, StringType, true) ::</span><br><span class="line">        StructField(&quot;age&quot;, IntegerType, true) :: Nil</span><br><span class="line">    )</span><br><span class="line">    &#x2F;**</span><br><span class="line">      * rows: java.util.List[Row],</span><br><span class="line">      * schema: StructType</span><br><span class="line">      * *&#x2F;</span><br><span class="line">    val df: DataFrame &#x3D; sqlContext.createDataFrame(rowRDD,structType)</span><br><span class="line">    df.createOrReplaceTempView(&quot;people&quot;)</span><br><span class="line">    sqlContext.sql(&quot;select * from people&quot;).show()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>通过<code>json</code>文件创建</li>
+</ol>
+<p>参考前面的示例。</p>
+<h2 id="使用SQL"><a href="#使用SQL" class="headerlink" title="使用SQL"></a>使用SQL</h2><p>可以直接使用<code>SQL</code>对<code>DataFrame</code>操作</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 注册临时视图</span></span><br><span class="line">scala&gt; df.createOrReplaceTempView(<span class="string">"people"</span>)</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span> sqlDF = spark.sql(<span class="string">"SELECT * FROM people"</span>)</span><br><span class="line">sqlDF: org.apache.spark.sql.<span class="type">DataFrame</span> = [age: bigint, name: string]</span><br><span class="line"></span><br><span class="line">scala&gt; sqlDF.show()</span><br><span class="line">+----+-------+</span><br><span class="line">| age|   name|</span><br><span class="line">+----+-------+</span><br><span class="line">|<span class="literal">null</span>|<span class="type">Michael</span>|</span><br><span class="line">|  <span class="number">30</span>|   <span class="type">Andy</span>|</span><br><span class="line">|  <span class="number">19</span>| <span class="type">Justin</span>|</span><br><span class="line">+----+-------+</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2020/12/31/spark-RDD/" rel="next" title="Spark入门（2）—— RDD">
+                  <i class="fa fa-chevron-left"></i> Spark入门（2）—— RDD
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2020/12/31/spark-udf/" rel="prev" title="Spark入门（4）—— UDF">
+                  Spark入门（4）—— UDF <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Spark-SQL"><span class="nav-number">1.</span> <span class="nav-text">Spark SQL</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataFrame"><span class="nav-number">2.</span> <span class="nav-text">DataFrame</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RDD转换成DataFrame"><span class="nav-number">3.</span> <span class="nav-text">RDD转换成DataFrame</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用SQL"><span class="nav-number">4.</span> <span class="nav-text">使用SQL</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

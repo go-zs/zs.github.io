@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="通常我们安装依赖都是通过pip安装，那pip是怎么工具的呢，我们要把一个package打包发布又该如何操作呢？">
+<meta property="og:type" content="article">
+<meta property="og:title" content="python(2)——构建工具setup.py">
+<meta property="og:url" content="http://yoursite.com/2021/01/13/python-setup/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="通常我们安装依赖都是通过pip安装，那pip是怎么工具的呢，我们要把一个package打包发布又该如何操作呢？">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.hupai.pro/img/20210113114708.png">
+<meta property="article:published_time" content="2021-01-13T02:57:27.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.272Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.hupai.pro/img/20210113114708.png">
+
+<link rel="canonical" href="http://yoursite.com/2021/01/13/python-setup/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>python(2)——构建工具setup.py | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/01/13/python-setup/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          python(2)——构建工具setup.py
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-01-13 10:57:27" itemprop="dateCreated datePublished" datetime="2021-01-13T10:57:27+08:00">2021-01-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/python/" itemprop="url" rel="index">
+                    <span itemprop="name">python</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>通常我们安装依赖都是通过<code>pip</code>安装，那<code>pip</code>是怎么工具的呢，我们要把一个<code>package</code>打包发布又该如何操作呢？</p>
+<a id="more"></a>
+
+<p>通常我们需要编写一个<code>setup.py</code>文件，文件中需要提供这个<code>package</code>的依赖、版本及环境信息。</p>
+<h2 id="setup-py介绍"><a href="#setup-py介绍" class="headerlink" title="setup.py介绍"></a>setup.py介绍</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">from setuptools import setup, find_packages</span><br><span class="line"></span><br><span class="line">from distutils.core import setup</span><br><span class="line"></span><br><span class="line">setup(name&#x3D;&#39;Distutils&#39;,</span><br><span class="line">      version&#x3D;&#39;1.0&#39;,</span><br><span class="line">      description&#x3D;&#39;Python Distribution Utilities&#39;,</span><br><span class="line">      author&#x3D;&#39;Greg Ward&#39;,</span><br><span class="line">      author_email&#x3D;&#39;gward@python.net&#39;,</span><br><span class="line">      url&#x3D;&#39;https:&#x2F;&#x2F;www.python.org&#x2F;sigs&#x2F;distutils-sig&#x2F;&#39;,</span><br><span class="line">      packages&#x3D;[&#39;distutils&#39;, &#39;distutils.command&#39;],</span><br><span class="line">     )</span><br></pre></td></tr></table></figure>
+
+<p>基本参数说明：</p>
+<ul>
+<li>–name: 包名称</li>
+<li>version: 当前版本</li>
+<li>license: 许可证，常用的 <code>MIT</code>,<code>GPL</code></li>
+<li>url: 通常指向项目的<code>github</code>仓库</li>
+<li>packages: 需要打包进去的包</li>
+<li>package_dir: 如需要包含全部的可以这样写 <code>package_dir = {&#39;&#39;: &#39;lib&#39;}</code></li>
+<li>install_requires: 需要安装的依赖 </li>
+</ul>
+<h2 id="entry-points"><a href="#entry-points" class="headerlink" title="entry_points"></a>entry_points</h2><p><code>entry_points</code>可生成可执行文件，通常<code>cli</code>工具会使用这个参数与<code>click</code>库配合使用。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">entry_points&#x3D;&#123;</span><br><span class="line">    &#39;console_scripts&#39;: [</span><br><span class="line">        &#39;cursive &#x3D; test.main:main&#39;,</span><br><span class="line">    ],</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面的示例中，<code>cursive</code>是可执行的命令，<code>cmd:cursive_command</code>表示映射到<code>test</code>包<code>main</code>模块下的<code>main</code>方法上。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">├── test</span><br><span class="line">│   ├── __init__.py</span><br><span class="line">│   └── main.py</span><br><span class="line">├── setup.py</span><br><span class="line"></span><br><span class="line"><span class="comment"># main.py</span></span><br><span class="line"><span class="keyword">import</span> click</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@click.command()</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line">    print(<span class="string">"run"</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># setup.py</span></span><br><span class="line"><span class="keyword">from</span> setuptools <span class="keyword">import</span> setup, find_packages</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> distutils.core <span class="keyword">import</span> setup</span><br><span class="line"></span><br><span class="line">setup(name=<span class="string">'test'</span>,</span><br><span class="line">      version=<span class="string">'1.0'</span>,</span><br><span class="line">      description=<span class="string">'Python Distribution Utilities'</span>,</span><br><span class="line">      author=<span class="string">'Greg Ward'</span>,</span><br><span class="line">      author_email=<span class="string">'gward@python.net'</span>,</span><br><span class="line">      url=<span class="string">'https://www.python.org/sigs/distutils-sig/'</span>,</span><br><span class="line">      packages=find_packages(),</span><br><span class="line">      entry_points=&#123;</span><br><span class="line">          <span class="string">'console_scripts'</span>: [</span><br><span class="line">              <span class="string">'qwer = test.main:main'</span>,</span><br><span class="line">          ],</span><br><span class="line">      &#125;</span><br><span class="line">      )</span><br></pre></td></tr></table></figure>
+
+<p>执行<code>python setup.py install</code>之后，我们就可以在当前环境下，使用<code>qwer</code>这个命令了</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> qwer --<span class="built_in">help</span></span></span><br><span class="line">Usage: qwer [OPTIONS]</span><br><span class="line"></span><br><span class="line">Options:</span><br><span class="line">  --help  Show this message and exit.</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="打包上传至pypi"><a href="#打包上传至pypi" class="headerlink" title="打包上传至pypi"></a>打包上传至pypi</h2><p>写好了<code>setup.py</code>之后，执行打包命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python setup.py sdist bdist_wheel</span><br></pre></td></tr></table></figure>
+
+<p>命令执行成功后，查看<code>dist</code>目录，生成了如下打包文件</p>
+<p><img src="https://pic.hupai.pro/img/20210113114708.png" alt="目录"></p>
+<p>如果没有<code>pypi</code>账号，则需要前往官网注册，<a href="https://pypi.org/" target="_blank" rel="noopener">pypi官网</a></p>
+<p>注册之后，需要<code>twine</code>这个上传工具，执行<code>pip install twine</code></p>
+<p>安装完成后，执行<code>twine upload dist/*</code>即可</p>
+<p>发布完成后所有人都可以通过<code>pip install test</code>安装此包</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/python/" rel="tag"># python</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2021/01/12/go-hystrix/" rel="next" title="golang系列(31)--hystrix-go源码分析">
+                  <i class="fa fa-chevron-left"></i> golang系列(31)--hystrix-go源码分析
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2021/01/14/golang-beego1/" rel="prev" title="golang系列(32)--框架beego源码阅读(1)">
+                  golang系列(32)--框架beego源码阅读(1) <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#setup-py介绍"><span class="nav-number">1.</span> <span class="nav-text">setup.py介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#entry-points"><span class="nav-number">2.</span> <span class="nav-text">entry_points</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#打包上传至pypi"><span class="nav-number">3.</span> <span class="nav-text">打包上传至pypi</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

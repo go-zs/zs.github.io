@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="http服务中参数校验是非常重要的一环，go-playground&#x2F;validator是golang非常好用的开源库，它通过给struct添加tag的方式，自动完成参数的校验。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang系列(19)——Validator参数校验">
+<meta property="og:url" content="http://yoursite.com/2020/05/13/go(19)-validator/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="http服务中参数校验是非常重要的一环，go-playground&#x2F;validator是golang非常好用的开源库，它通过给struct添加tag的方式，自动完成参数的校验。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-05-13T02:19:20.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.245Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2020/05/13/go(19)-validator/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>golang系列(19)——Validator参数校验 | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/13/go(19)-validator/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          golang系列(19)——Validator参数校验
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-05-13 10:19:20" itemprop="dateCreated datePublished" datetime="2020-05-13T10:19:20+08:00">2020-05-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>http服务中参数校验是非常重要的一环，<a href="https://github.com/go-playground/validator" target="_blank" rel="noopener">go-playground/validator</a>是golang非常好用的开源库，它通过给<code>struct</code>添加<code>tag</code>的方式，自动完成参数的校验。</p>
+<a id="more"></a>
+
+<p>通常在<code>golang</code>中我们会为每个请求声明一个<code>struct</code>，在<code>json</code>序列化过程中我们是添加<code>json</code>这个<code>tag</code>实现字段之间的映射。同样的，我们使用<code>validator</code>这个库只需要添加<code>validate</code>这个<code>tag</code>，使用预定义的类型即可自动完成<code>struct</code>上的参数校验。</p>
+<p>下面是一个简单的示例</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Student <span class="keyword">struct</span> &#123;</span><br><span class="line">  Age <span class="keyword">int</span> <span class="string">`validate:"required,max=60,min=18"`</span>  <span class="comment">// 18&lt;=age&lt;= 60</span></span><br><span class="line">  Name <span class="keyword">string</span> <span class="string">`validate:"required"`</span>  <span class="comment">// 非空</span></span><br><span class="line">  ClassArr []<span class="keyword">string</span> <span class="string">`validate:"required,min=1" // 长度至少为1</span></span><br><span class="line"><span class="string">&#125;</span></span><br></pre></td></tr></table></figure>
+
+
+<h2 id="常见内置标识"><a href="#常见内置标识" class="headerlink" title="常见内置标识"></a>常见内置标识</h2><p><code>validator</code>内置了一些标识</p>
+<h3 id="required标识"><a href="#required标识" class="headerlink" title="required标识"></a>required标识</h3><blockquote>
+<p>// 要求字段非空<br>Usage <code>required</code><br>// Field1或Field2存在时要求非空<br>Usage <code>required_with=Field1 Field2</code><br>// Filed1和Field2都存在时要求非空<br>Usage <code>required_with_all==Field1 Field2</code><br>// Field1或Field2不存在时要求非空<br>Usage <code>required_without=Field1 Field2</code><br>// Field1和Field2都不存在时要求非空<br>Usage <code>required_without_all=Field1 Field2</code></p>
+</blockquote>
+<h3 id><a href="#" class="headerlink" title></a></h3><h3 id="Skip标识"><a href="#Skip标识" class="headerlink" title="Skip标识"></a>Skip标识</h3><blockquote>
+<p>Usage <code>-</code></p>
+</blockquote>
+<h3 id="Or标识"><a href="#Or标识" class="headerlink" title="Or标识"></a>Or标识</h3><blockquote>
+<p>Usage <code>|</code></p>
+</blockquote>
+<h3 id="omitempty标识"><a href="#omitempty标识" class="headerlink" title="omitempty标识"></a>omitempty标识</h3><p>允许字段不存在，此时如果字段不存在时不会进行校验，如果字段存在，<code>min</code>之类的校验会生效</p>
+<blockquote>
+<p>Usage <code>omitempty</code></p>
+</blockquote>
+<h3 id="Dive标识"><a href="#Dive标识" class="headerlink" title="Dive标识"></a>Dive标识</h3><p>这个字段会让<code>validator</code>校验<code>slice</code>或者<code>map</code>中的元素</p>
+<blockquote>
+<p>Usage <code>dive</code></p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Test <span class="keyword">struct</span> &#123;</span><br><span class="line">  [][]<span class="keyword">string</span> with validation tag <span class="string">"gt=0,dive,len=1,dive,required"</span></span><br><span class="line">  <span class="comment">// gt=0 will be applied to []</span></span><br><span class="line">  <span class="comment">// len=1 will be applied to []string</span></span><br><span class="line">  <span class="comment">// required will be applied to string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="比较符"><a href="#比较符" class="headerlink" title="比较符"></a>比较符</h3><p>比较符号就只有以下这 6 种：</p>
+<ul>
+<li><code>eq</code> 等于</li>
+<li><code>ne</code> 不等于</li>
+<li><code>gt</code> 大于</li>
+<li><code>gte</code> 大于等于</li>
+<li><code>lt</code> 小于</li>
+<li><code>lte</code> 小于等于</li>
+</ul>
+<h3 id="跨字段验证"><a href="#跨字段验证" class="headerlink" title="跨字段验证"></a>跨字段验证</h3><blockquote>
+<p>Usage <code>eqfield=Field</code> 必须等于 Field 的值<br>Usage <code>nefield=Field</code> 必须不等于 Field 的值<br>Usage <code>gtfield=Field</code> 必须大于 Field 的值<br>Usage <code>eqcsfield=Other.Field</code> 必须等于 struct Other 中 Field 的值；</p>
+</blockquote>
+<h3 id="One-Of"><a href="#One-Of" class="headerlink" title="One Of"></a>One Of</h3><blockquote>
+<p>Usage: oneof=5 7 9</p>
+</blockquote>
+<h3 id="Unique"><a href="#Unique" class="headerlink" title="Unique"></a>Unique</h3><blockquote>
+<p>Usage: unique  // for arrays, slices, and maps<br>Usage: unique=field // for slices of structs</p>
+</blockquote>
+<h3 id="Contains"><a href="#Contains" class="headerlink" title="Contains"></a>Contains</h3><blockquote>
+<p>Usage: contains=@ </p>
+</blockquote>
+<h3 id="Excludes"><a href="#Excludes" class="headerlink" title="Excludes"></a>Excludes</h3><blockquote>
+<p>Usage: excludes=@<br>Usage: excludesall=!@#?</p>
+</blockquote>
+<h3 id="Starts-With"><a href="#Starts-With" class="headerlink" title="Starts With"></a>Starts With</h3><blockquote>
+<p>Usage: startswith=hello</p>
+</blockquote>
+<h3 id="Ends-With"><a href="#Ends-With" class="headerlink" title="Ends With"></a>Ends With</h3><blockquote>
+<p>Usage: endswith=hello</p>
+</blockquote>
+<h3 id="字符串类型"><a href="#字符串类型" class="headerlink" title="字符串类型"></a>字符串类型</h3><blockquote>
+<p>Usage: alpha  // ASCII alpha characters  only<br>Usage: numeric  // 数字<br>Usage: email   // email<br>Usage: file       // File Path<br>Usage: url      // must contain a schema eg: http://<br>Usage: ip<br>Usage: ipv4<br>Usage: ipv6<br>Usage: tcp_addr     </p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2020/02/29/2020-02-29-grpc-1/" rel="next" title="grpc(1)--protobuf语法">
+                  <i class="fa fa-chevron-left"></i> grpc(1)--protobuf语法
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2020/05/24/go(20)-benchmark/" rel="prev" title="golang系列(20)-benchmark">
+                  golang系列(20)-benchmark <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#常见内置标识"><span class="nav-number">1.</span> <span class="nav-text">常见内置标识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#required标识"><span class="nav-number">1.1.</span> <span class="nav-text">required标识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#"><span class="nav-number">1.2.</span> <span class="nav-text"></span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Skip标识"><span class="nav-number">1.3.</span> <span class="nav-text">Skip标识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Or标识"><span class="nav-number">1.4.</span> <span class="nav-text">Or标识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#omitempty标识"><span class="nav-number">1.5.</span> <span class="nav-text">omitempty标识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Dive标识"><span class="nav-number">1.6.</span> <span class="nav-text">Dive标识</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#比较符"><span class="nav-number">1.7.</span> <span class="nav-text">比较符</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#跨字段验证"><span class="nav-number">1.8.</span> <span class="nav-text">跨字段验证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#One-Of"><span class="nav-number">1.9.</span> <span class="nav-text">One Of</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Unique"><span class="nav-number">1.10.</span> <span class="nav-text">Unique</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Contains"><span class="nav-number">1.11.</span> <span class="nav-text">Contains</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Excludes"><span class="nav-number">1.12.</span> <span class="nav-text">Excludes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Starts-With"><span class="nav-number">1.13.</span> <span class="nav-text">Starts With</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Ends-With"><span class="nav-number">1.14.</span> <span class="nav-text">Ends With</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#字符串类型"><span class="nav-number">1.15.</span> <span class="nav-text">字符串类型</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

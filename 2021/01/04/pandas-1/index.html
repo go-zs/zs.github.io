@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="Pandas是我最喜欢的python库之一，不只是功能强大，它的API也是非常的优雅。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python强大的数据分析利器——Pandas(1)">
+<meta property="og:url" content="http://yoursite.com/2021/01/04/pandas-1/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="Pandas是我最喜欢的python库之一，不只是功能强大，它的API也是非常的优雅。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-01-04T00:10:40.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.270Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="pandas">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2021/01/04/pandas-1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Python强大的数据分析利器——Pandas(1) | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/01/04/pandas-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Python强大的数据分析利器——Pandas(1)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-01-04 08:10:40" itemprop="dateCreated datePublished" datetime="2021-01-04T08:10:40+08:00">2021-01-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/python/" itemprop="url" rel="index">
+                    <span itemprop="name">python</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><code>Pandas</code>是我最喜欢的<code>python</code>库之一，不只是功能强大，它的<code>API</code>也是非常的优雅。</p>
+<a id="more"></a>
+
+<h2 id="Series"><a href="#Series" class="headerlink" title="Series"></a>Series</h2><p><code>Series</code>和原生的字典很像，<code>index</code>相当于字典的<code>key</code>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">3</span>]: s = pd.Series([<span class="number">1</span>, <span class="number">3</span>, <span class="number">5</span>, np.nan, <span class="number">6</span>, <span class="number">8</span>])</span><br><span class="line"></span><br><span class="line">In [<span class="number">4</span>]: s</span><br><span class="line">Out[<span class="number">4</span>]: </span><br><span class="line"><span class="number">0</span>    <span class="number">1.0</span></span><br><span class="line"><span class="number">1</span>    <span class="number">3.0</span></span><br><span class="line"><span class="number">2</span>    <span class="number">5.0</span></span><br><span class="line"><span class="number">3</span>    NaN</span><br><span class="line"><span class="number">4</span>    <span class="number">6.0</span></span><br><span class="line"><span class="number">5</span>    <span class="number">8.0</span></span><br><span class="line">dtype: float64</span><br></pre></td></tr></table></figure>
+
+<p><code>index</code>如果不指定就会默认用<code>0,1,2,3...</code>这个自然序。当然也是可以指定的。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">4</span>]: index = [<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>]</span><br><span class="line"></span><br><span class="line">In [<span class="number">5</span>]: s = pd.Series([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>], index)</span><br><span class="line"></span><br><span class="line">In [<span class="number">6</span>]: s</span><br><span class="line">Out[<span class="number">6</span>]: </span><br><span class="line">a    <span class="number">1</span></span><br><span class="line">b    <span class="number">2</span></span><br><span class="line">c    <span class="number">3</span></span><br><span class="line">dtype: int64</span><br></pre></td></tr></table></figure>
+
+<h2 id="Dataframe输入"><a href="#Dataframe输入" class="headerlink" title="Dataframe输入"></a>Dataframe输入</h2><p><code>DataFrame</code>是<code>pandas</code>中最重要的数据结构，它有着非常多灵活的创建方式。</p>
+<h3 id="by字典"><a href="#by字典" class="headerlink" title="by字典"></a>by字典</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Series</span></span><br><span class="line">In [<span class="number">9</span>]: d = &#123;<span class="string">'one'</span>: pd.Series([<span class="number">1.</span>, <span class="number">2.</span>, <span class="number">3.</span>], index=[<span class="string">'a'</span>, <span class="string">'b'</span>, <span class="string">'c'</span>]),</span><br><span class="line">   ...:  <span class="string">'two'</span>: pd.Series([<span class="number">1.</span>, <span class="number">2.</span>, <span class="number">3.</span>, <span class="number">4.</span>], index=[<span class="string">'a'</span>, <span class="string">'b'</span>, <span class="string">'c'</span>, <span class="string">'d'</span>])&#125;</span><br><span class="line"></span><br><span class="line">In [<span class="number">12</span>]: df = pd.DataFrame(d)</span><br><span class="line"></span><br><span class="line">In [<span class="number">13</span>]: df</span><br><span class="line">Out[<span class="number">13</span>]: </span><br><span class="line">   one  two</span><br><span class="line">a  <span class="number">1.0</span>  <span class="number">1.0</span></span><br><span class="line">b  <span class="number">2.0</span>  <span class="number">2.0</span></span><br><span class="line">c  <span class="number">3.0</span>  <span class="number">3.0</span></span><br><span class="line">d  NaN  <span class="number">4.0</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># list</span></span><br><span class="line">In [<span class="number">14</span>]: d = &#123;<span class="string">'one'</span>: [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>], <span class="string">'two'</span>: [<span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">1</span>]&#125;</span><br><span class="line"></span><br><span class="line">In [<span class="number">15</span>]: pd.DataFrame(d)</span><br><span class="line">Out[<span class="number">15</span>]: </span><br><span class="line">   one  two</span><br><span class="line"><span class="number">0</span>    <span class="number">1</span>    <span class="number">2</span></span><br><span class="line"><span class="number">1</span>    <span class="number">2</span>    <span class="number">3</span></span><br><span class="line"><span class="number">2</span>    <span class="number">3</span>    <span class="number">4</span></span><br><span class="line"><span class="number">3</span>    <span class="number">4</span>    <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># from_dict</span></span><br><span class="line">In [<span class="number">57</span>]: pd.DataFrame.from_dict(dict([(<span class="string">'A'</span>, [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]), (<span class="string">'B'</span>, [<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>])]))</span><br><span class="line">Out[<span class="number">57</span>]: </span><br><span class="line">   A  B</span><br><span class="line"><span class="number">0</span>  <span class="number">1</span>  <span class="number">4</span></span><br><span class="line"><span class="number">1</span>  <span class="number">2</span>  <span class="number">5</span></span><br><span class="line"><span class="number">2</span>  <span class="number">3</span>  <span class="number">6</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="by字典数组"><a href="#by字典数组" class="headerlink" title="by字典数组"></a>by字典数组</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">16</span>]: l = [&#123;<span class="string">'a'</span>: <span class="number">5</span>, <span class="string">'b'</span>: <span class="number">6</span>&#125;, &#123;<span class="string">'a'</span>: <span class="number">11</span>, <span class="string">'b'</span>: <span class="number">12</span>, <span class="string">'c'</span>: <span class="number">0</span>&#125;]</span><br><span class="line"></span><br><span class="line">In [<span class="number">17</span>]: pd.DataFrame(l)</span><br><span class="line">Out[<span class="number">17</span>]: </span><br><span class="line">    a   b    c</span><br><span class="line"><span class="number">0</span>   <span class="number">5</span>   <span class="number">6</span>  NaN</span><br><span class="line"><span class="number">1</span>  <span class="number">11</span>  <span class="number">12</span>  <span class="number">0.0</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="by多维数组"><a href="#by多维数组" class="headerlink" title="by多维数组"></a>by多维数组</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">19</span>]: d = [[<span class="number">1</span>,<span class="number">2</span>], [<span class="number">3</span>,<span class="number">4</span>]]</span><br><span class="line"></span><br><span class="line">In [<span class="number">20</span>]: pd.DataFrame(d)</span><br><span class="line">Out[<span class="number">20</span>]: </span><br><span class="line">   <span class="number">0</span>  <span class="number">1</span></span><br><span class="line"><span class="number">0</span>  <span class="number">1</span>  <span class="number">2</span></span><br><span class="line"><span class="number">1</span>  <span class="number">3</span>  <span class="number">4</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="by-SQL"><a href="#by-SQL" class="headerlink" title="by SQL"></a>by SQL</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># pip install pymysql</span></span><br><span class="line"><span class="comment"># pip install sqlalchemy</span></span><br><span class="line">In [<span class="number">1</span>]: <span class="keyword">from</span> sqlalchemy <span class="keyword">import</span> create_engine</span><br><span class="line">In [<span class="number">2</span>]: <span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line">In [<span class="number">3</span>]: <span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line">In [<span class="number">4</span>]: engine = create_engine(<span class="string">'mysql+pymysql://root:test@localhost:3306/spark'</span>)</span><br><span class="line">In [<span class="number">5</span>]: sql = <span class="string">"select * from student"</span></span><br><span class="line">In [<span class="number">6</span>]: df = pd.read_sql_query(sql, engine)</span><br><span class="line">In [<span class="number">7</span>]: df</span><br><span class="line">Out[<span class="number">7</span>]: </span><br><span class="line">   id      name gender  age</span><br><span class="line"><span class="number">0</span>   <span class="number">1</span>   Xueqian      F   <span class="number">23</span></span><br><span class="line"><span class="number">1</span>   <span class="number">2</span>  Weiliang      M   <span class="number">24</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="by-CSV-EXCEL-HDF"><a href="#by-CSV-EXCEL-HDF" class="headerlink" title="by CSV,EXCEL,HDF"></a>by CSV,EXCEL,HDF</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># read_excel, read_hdf同理</span></span><br><span class="line">In [<span class="number">10</span>]: df = pd.read_csv(<span class="string">'data.csv'</span>, sep=<span class="string">","</span>)</span><br><span class="line"></span><br><span class="line">In [<span class="number">11</span>]: df</span><br><span class="line">Out[<span class="number">11</span>]: </span><br><span class="line">   name  age</span><br><span class="line"><span class="number">0</span>  jack   <span class="number">18</span></span><br><span class="line"><span class="number">1</span>  lily   <span class="number">20</span></span><br></pre></td></tr></table></figure>
+
+<p>从上面的示例我们可以发现，<code>pandas</code>自动将缺失值处理成了<code>NaN</code>。</p>
+<h2 id="DataFrame数据输出"><a href="#DataFrame数据输出" class="headerlink" title="DataFrame数据输出"></a>DataFrame数据输出</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">df.to_hdf(<span class="string">'foo.h5'</span>, <span class="string">'df'</span>)</span><br><span class="line">df.to_csv(<span class="string">'foo.csv'</span>)</span><br><span class="line">df.to_excel(<span class="string">'foo.xlsx'</span>, sheet_name=<span class="string">'Sheet1'</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="DataFrame访问数据"><a href="#DataFrame访问数据" class="headerlink" title="DataFrame访问数据"></a>DataFrame访问数据</h2><p>数据初始化</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">1</span>]: dates = pd.date_range(<span class="string">'1/1/2020'</span>, periods=<span class="number">8</span>)</span><br><span class="line"></span><br><span class="line">In [<span class="number">2</span>]: df = pd.DataFrame(np.random.randn(<span class="number">8</span>, <span class="number">4</span>),</span><br><span class="line">   ...:                   index=dates, columns=[<span class="string">'A'</span>, <span class="string">'B'</span>, <span class="string">'C'</span>, <span class="string">'D'</span>])</span><br><span class="line">   ...: </span><br><span class="line"></span><br><span class="line">In [<span class="number">12</span>]: df</span><br><span class="line">Out[<span class="number">12</span>]: </span><br><span class="line">                   A         B         C         D</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-01</span>  <span class="number">1.540781</span>  <span class="number">1.056957</span>  <span class="number">2.368582</span> <span class="number">-1.388904</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-02</span>  <span class="number">0.319485</span>  <span class="number">0.199442</span> <span class="number">-1.693985</span>  <span class="number">0.605021</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-03</span> <span class="number">-0.708602</span>  <span class="number">0.961322</span> <span class="number">-0.210920</span>  <span class="number">0.670033</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-04</span> <span class="number">-0.952370</span> <span class="number">-2.306830</span>  <span class="number">0.078056</span> <span class="number">-0.090901</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-05</span> <span class="number">-0.143606</span>  <span class="number">1.434278</span>  <span class="number">1.168140</span>  <span class="number">1.079450</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-06</span>  <span class="number">0.665699</span> <span class="number">-1.892689</span>  <span class="number">1.632554</span>  <span class="number">0.243764</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-07</span> <span class="number">-0.317191</span>  <span class="number">0.541485</span>  <span class="number">1.037746</span>  <span class="number">0.263215</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-08</span>  <span class="number">0.095929</span>  <span class="number">0.657138</span> <span class="number">-1.048893</span> <span class="number">-0.904121</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="选择列"><a href="#选择列" class="headerlink" title="选择列"></a>选择列</h3><p>选择单列，产生 Series，与 df.A 等效：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">13</span>]: df[<span class="string">'A'</span>]</span><br><span class="line">Out[<span class="number">13</span>]: </span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-01</span>    <span class="number">1.540781</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-02</span>    <span class="number">0.319485</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-03</span>   <span class="number">-0.708602</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-04</span>   <span class="number">-0.952370</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-05</span>   <span class="number">-0.143606</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-06</span>    <span class="number">0.665699</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-07</span>   <span class="number">-0.317191</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-08</span>    <span class="number">0.095929</span></span><br><span class="line">Freq: D, Name: A, dtype: float64</span><br></pre></td></tr></table></figure>
+
+<h3 id="选择行"><a href="#选择行" class="headerlink" title="选择行"></a>选择行</h3><p>类似数组切片</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">14</span>]: df[<span class="number">0</span>:<span class="number">3</span>]</span><br><span class="line">Out[<span class="number">14</span>]: </span><br><span class="line">                   A         B         C         D</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-01</span>  <span class="number">1.540781</span>  <span class="number">1.056957</span>  <span class="number">2.368582</span> <span class="number">-1.388904</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-02</span>  <span class="number">0.319485</span>  <span class="number">0.199442</span> <span class="number">-1.693985</span>  <span class="number">0.605021</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-03</span> <span class="number">-0.708602</span>  <span class="number">0.961322</span> <span class="number">-0.210920</span>  <span class="number">0.670033</span></span><br><span class="line"></span><br><span class="line">In [<span class="number">15</span>]: df[<span class="string">'2020-01-02'</span>: <span class="string">'2020-01-04'</span>]</span><br><span class="line">Out[<span class="number">15</span>]: </span><br><span class="line">                   A         B         C         D</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-02</span>  <span class="number">0.319485</span>  <span class="number">0.199442</span> <span class="number">-1.693985</span>  <span class="number">0.605021</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-03</span> <span class="number">-0.708602</span>  <span class="number">0.961322</span> <span class="number">-0.210920</span>  <span class="number">0.670033</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-04</span> <span class="number">-0.952370</span> <span class="number">-2.306830</span>  <span class="number">0.078056</span> <span class="number">-0.090901</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="操作符访问"><a href="#操作符访问" class="headerlink" title="操作符访问"></a>操作符访问</h3><p>df支持4种方式访问行列，<code>ix</code>在新版本<code>pandas</code>中已经废弃</p>
+<ul>
+<li>loc  按index标签选择</li>
+<li>at   同loc 只能访问单个元素</li>
+<li>iloc 按索引位置选择</li>
+<li>iat  同iloc 只能访问单个元素</li>
+</ul>
+<h4 id="loc"><a href="#loc" class="headerlink" title="loc"></a>loc</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">16</span>]: df.loc[<span class="string">'2020-01-02'</span>:<span class="string">'2020-01-04'</span>, [<span class="string">'A'</span>,<span class="string">'B'</span>]]</span><br><span class="line">Out[<span class="number">16</span>]: </span><br><span class="line">                   A         B</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-02</span>  <span class="number">0.319485</span>  <span class="number">0.199442</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-03</span> <span class="number">-0.708602</span>  <span class="number">0.961322</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-04</span> <span class="number">-0.952370</span> <span class="number">-2.306830</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="at"><a href="#at" class="headerlink" title="at"></a>at</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># at</span></span><br><span class="line">In [<span class="number">20</span>]: df.at[<span class="string">'2020-01-02'</span>, <span class="string">'A'</span>]</span><br><span class="line">Out[<span class="number">20</span>]: <span class="number">0.3194852199254171</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="iloc"><a href="#iloc" class="headerlink" title="iloc"></a>iloc</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">17</span>]: df.iloc[<span class="number">3</span>]</span><br><span class="line">Out[<span class="number">17</span>]: </span><br><span class="line">A   <span class="number">-0.952370</span></span><br><span class="line">B   <span class="number">-2.306830</span></span><br><span class="line">C    <span class="number">0.078056</span></span><br><span class="line">D   <span class="number">-0.090901</span></span><br><span class="line">Name: <span class="number">2020</span><span class="number">-01</span><span class="number">-04</span> <span class="number">00</span>:<span class="number">00</span>:<span class="number">00</span>, dtype: float64</span><br><span class="line"></span><br><span class="line"><span class="comment"># 二维切片</span></span><br><span class="line">In [<span class="number">18</span>]: df.iloc[<span class="number">3</span>:<span class="number">5</span>, <span class="number">0</span>:<span class="number">2</span>]</span><br><span class="line">Out[<span class="number">18</span>]: </span><br><span class="line">                   A         B</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-04</span> <span class="number">-0.952370</span> <span class="number">-2.306830</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-05</span> <span class="number">-0.143606</span>  <span class="number">1.434278</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="iat"><a href="#iat" class="headerlink" title="iat"></a>iat</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># iat</span></span><br><span class="line">In [<span class="number">19</span>]: df.iat[<span class="number">3</span>,<span class="number">0</span>]</span><br><span class="line">Out[<span class="number">19</span>]: <span class="number">-0.9523699346168295</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="布尔运算"><a href="#布尔运算" class="headerlink" title="布尔运算"></a>布尔运算</h3><h4 id="支持多个-amp-运算符"><a href="#支持多个-amp-运算符" class="headerlink" title="支持多个&amp; | 运算符"></a>支持多个<code>&amp; |</code> 运算符</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 列选择</span></span><br><span class="line">In [<span class="number">27</span>]: df[df.A &gt; <span class="number">0</span>]</span><br><span class="line">Out[<span class="number">27</span>]: </span><br><span class="line">                   A         B         C         D</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-01</span>  <span class="number">1.540781</span>  <span class="number">1.056957</span>  <span class="number">2.368582</span> <span class="number">-1.388904</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-02</span>  <span class="number">0.319485</span>  <span class="number">0.199442</span> <span class="number">-1.693985</span>  <span class="number">0.605021</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-06</span>  <span class="number">0.665699</span> <span class="number">-1.892689</span>  <span class="number">1.632554</span>  <span class="number">0.243764</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-08</span>  <span class="number">0.095929</span>  <span class="number">0.657138</span> <span class="number">-1.048893</span> <span class="number">-0.904121</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 多个条件</span></span><br><span class="line">In [<span class="number">28</span>]: df[(df.A &gt; <span class="number">0</span>)&amp;(df.B &lt; <span class="number">0</span>)]</span><br><span class="line">Out[<span class="number">28</span>]: </span><br><span class="line">                   A         B         C         D</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-06</span>  <span class="number">0.665699</span> <span class="number">-1.892689</span>  <span class="number">1.632554</span>  <span class="number">0.243764</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 整个df</span></span><br><span class="line">In [<span class="number">29</span>]: df[df &gt; <span class="number">0</span> ]</span><br><span class="line">Out[<span class="number">29</span>]: </span><br><span class="line">                   A         B         C         D</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-01</span>  <span class="number">1.540781</span>  <span class="number">1.056957</span>  <span class="number">2.368582</span>       NaN</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-02</span>  <span class="number">0.319485</span>  <span class="number">0.199442</span>       NaN  <span class="number">0.605021</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-03</span>       NaN  <span class="number">0.961322</span>       NaN  <span class="number">0.670033</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-04</span>       NaN       NaN  <span class="number">0.078056</span>       NaN</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-05</span>       NaN  <span class="number">1.434278</span>  <span class="number">1.168140</span>  <span class="number">1.079450</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-06</span>  <span class="number">0.665699</span>       NaN  <span class="number">1.632554</span>  <span class="number">0.243764</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-07</span>       NaN  <span class="number">0.541485</span>  <span class="number">1.037746</span>  <span class="number">0.263215</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-08</span>  <span class="number">0.095929</span>  <span class="number">0.657138</span>       NaN       NaN</span><br></pre></td></tr></table></figure>
+
+<h4 id="支持isin函数"><a href="#支持isin函数" class="headerlink" title="支持isin函数"></a>支持isin函数</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">In [<span class="number">31</span>]: df[<span class="string">'E'</span>] = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>, <span class="number">7</span>, <span class="number">8</span>]</span><br><span class="line"></span><br><span class="line">In [<span class="number">32</span>]: df[df[<span class="string">'E'</span>].isin([<span class="number">1</span>, <span class="number">2</span>])]</span><br><span class="line">Out[<span class="number">32</span>]: </span><br><span class="line">                   A         B         C         D  E</span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-01</span>  <span class="number">1.540781</span>  <span class="number">1.056957</span>  <span class="number">2.368582</span> <span class="number">-1.388904</span>  <span class="number">1</span></span><br><span class="line"><span class="number">2020</span><span class="number">-01</span><span class="number">-02</span>  <span class="number">0.319485</span>  <span class="number">0.199442</span> <span class="number">-1.693985</span>  <span class="number">0.605021</span>  <span class="number">2</span></span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/python/" rel="tag"># python</a>
+              <a href="/tags/pandas/" rel="tag"># pandas</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2021/01/01/faiss-1/" rel="next" title="faiss使用文档（1）—— 环境搭建">
+                  <i class="fa fa-chevron-left"></i> faiss使用文档（1）—— 环境搭建
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2021/01/05/pandas-2/" rel="prev" title="Python强大的数据分析利器——Pandas(2)">
+                  Python强大的数据分析利器——Pandas(2) <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Series"><span class="nav-number">1.</span> <span class="nav-text">Series</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Dataframe输入"><span class="nav-number">2.</span> <span class="nav-text">Dataframe输入</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#by字典"><span class="nav-number">2.1.</span> <span class="nav-text">by字典</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#by字典数组"><span class="nav-number">2.2.</span> <span class="nav-text">by字典数组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#by多维数组"><span class="nav-number">2.3.</span> <span class="nav-text">by多维数组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#by-SQL"><span class="nav-number">2.4.</span> <span class="nav-text">by SQL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#by-CSV-EXCEL-HDF"><span class="nav-number">2.5.</span> <span class="nav-text">by CSV,EXCEL,HDF</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataFrame数据输出"><span class="nav-number">3.</span> <span class="nav-text">DataFrame数据输出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DataFrame访问数据"><span class="nav-number">4.</span> <span class="nav-text">DataFrame访问数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#选择列"><span class="nav-number">4.1.</span> <span class="nav-text">选择列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#选择行"><span class="nav-number">4.2.</span> <span class="nav-text">选择行</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#操作符访问"><span class="nav-number">4.3.</span> <span class="nav-text">操作符访问</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#loc"><span class="nav-number">4.3.1.</span> <span class="nav-text">loc</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#at"><span class="nav-number">4.3.2.</span> <span class="nav-text">at</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#iloc"><span class="nav-number">4.3.3.</span> <span class="nav-text">iloc</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#iat"><span class="nav-number">4.3.4.</span> <span class="nav-text">iat</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#布尔运算"><span class="nav-number">4.4.</span> <span class="nav-text">布尔运算</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#支持多个-amp-运算符"><span class="nav-number">4.4.1.</span> <span class="nav-text">支持多个&amp; | 运算符</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#支持isin函数"><span class="nav-number">4.4.2.</span> <span class="nav-text">支持isin函数</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

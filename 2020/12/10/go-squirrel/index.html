@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="在golang中如果我们不用ORM框架的话，需要我们自己手动拼接SQL，squirrel是一个能够帮助我们简化这个过程的第三方库。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang系列(25)--SQL生成库squirrel">
+<meta property="og:url" content="http://yoursite.com/2020/12/10/go-squirrel/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="在golang中如果我们不用ORM框架的话，需要我们自己手动拼接SQL，squirrel是一个能够帮助我们简化这个过程的第三方库。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-12-10T02:04:45.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.266Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2020/12/10/go-squirrel/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>golang系列(25)--SQL生成库squirrel | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/12/10/go-squirrel/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          golang系列(25)--SQL生成库squirrel
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-10 10:04:45" itemprop="dateCreated datePublished" datetime="2020-12-10T10:04:45+08:00">2020-12-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在<code>golang</code>中如果我们不用<code>ORM</code>框架的话，需要我们自己手动拼接<code>SQL</code>，<code>squirrel</code>是一个能够帮助我们简化这个过程的第三方库。</p>
+<a id="more"></a>
+
+
+<h1 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h1><p><code>squirrel</code>不是<code>ORM</code>，它是通过表结构构造的方式完成<code>SQL</code>的拼接，通过<code>ToSql</code>方式，生成执行的<code>SQL</code>及对应的参数。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> sq <span class="string">"github.com/Masterminds/squirrel"</span></span><br><span class="line"></span><br><span class="line">users := sq.Select(<span class="string">"*"</span>).From(<span class="string">"users"</span>).Join(<span class="string">"emails USING (email_id)"</span>)</span><br><span class="line"></span><br><span class="line">active := users.Where(sq.Eq&#123;<span class="string">"deleted_at"</span>: <span class="literal">nil</span>&#125;)</span><br><span class="line"></span><br><span class="line">sql, args, err := active.ToSql()</span><br><span class="line"></span><br><span class="line">sql == <span class="string">"SELECT * FROM users JOIN emails USING (email_id) WHERE deleted_at IS NULL"</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Builder"><a href="#Builder" class="headerlink" title="Builder"></a>Builder</h2><p><code>Builder</code>是实现增删改查的类</p>
+<blockquote>
+<p>squirrel.InsertBuilder 插入<br>squirrel.UpdateBuilder 修改<br>squirrel.DeleteBuilder 删除<br>squirrel.SelectBuilder 查找</p>
+</blockquote>
+<p>所有的<code>Builder</code>都实现了<code>Sqlizer</code>这个接口，所以它们都可以生成对应<code>SQL</code>语句。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Sqlizer <span class="keyword">interface</span> &#123;</span><br><span class="line">	ToSql() (<span class="keyword">string</span>, []<span class="keyword">interface</span>&#123;&#125;, error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="squirrel-Expr"><a href="#squirrel-Expr" class="headerlink" title="squirrel.Expr"></a>squirrel.Expr</h2><p><code>squirrel.Expr</code>可以用于表达式，实现类似字段自增这样的功能。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">squirrel.Update(<span class="string">"money"</span>).Where(...).Set(<span class="string">"value"</span>, squirrel.Expr(fmt.Sprintf(<span class="string">"%s + %d"</span>, <span class="string">"value"</span>, <span class="number">1</span>))</span><br></pre></td></tr></table></figure>
+
+<h2 id="Prefix-Suffix"><a href="#Prefix-Suffix" class="headerlink" title="Prefix, Suffix"></a>Prefix, Suffix</h2><p>这两个方式可以在字段前后添加信息。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">nestedBuilder := StatementBuilder.PlaceholderFormat(Dollar).Select(<span class="string">"*"</span>).Prefix(<span class="string">"NOT EXISTS ("</span>).</span><br><span class="line">	From(<span class="string">"bar"</span>).Where(<span class="string">"y = ?"</span>, <span class="number">42</span>).Suffix(<span class="string">")"</span>)</span><br><span class="line">outerSql, _, err := StatementBuilder.PlaceholderFormat(Dollar).Select(<span class="string">"*"</span>).</span><br><span class="line">	From(<span class="string">"foo"</span>).Where(<span class="string">"x = ?"</span>).Where(nestedBuilder).ToSql()</span><br></pre></td></tr></table></figure>
+
+<h1 id="源码解析"><a href="#源码解析" class="headerlink" title="源码解析"></a>源码解析</h1><h2 id="Builder-1"><a href="#Builder-1" class="headerlink" title="Builder"></a>Builder</h2><p><code>InsertBuilder</code>这些<code>builder</code>是项目<code>github.com/lann/builder</code>中结构体<code>builder.Builder</code>的重定义。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"github.com/lann/builder"</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> InsertBuilder builder.Builder</span><br></pre></td></tr></table></figure>
+
+<p><code>builder</code>这个库<a href="https://github.com/lann/builder" target="_blank" rel="noopener">github主页</a>上是这样介绍的。</p>
+<blockquote>
+<p>Builder was originally written for Squirrel, a fluent SQL generator. It is probably the best example of Builder in action.<br>Builder helps you write fluent DSLs for your libraries with method chaining:</p>
+</blockquote>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">resp := ReqBuilder.</span><br><span class="line">    Url(<span class="string">"http://golang.org"</span>).</span><br><span class="line">    Header(<span class="string">"User-Agent"</span>, <span class="string">"Builder"</span>).</span><br><span class="line">		Get()</span><br></pre></td></tr></table></figure>
+
+<p>来看下<code>builder.Builder</code>的定义，参考注释说明，这个结构体主要用于存储一系列不可变的值。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Builder stores a set of named values.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// New types can be declared with underlying type Builder and used with the</span></span><br><span class="line"><span class="comment">// functions in this package. See example.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Instances of Builder should be treated as immutable. It is up to the</span></span><br><span class="line"><span class="comment">// implementor to ensure mutable values set on a Builder are not mutated while</span></span><br><span class="line"><span class="comment">// the Builder is in use.</span></span><br><span class="line"><span class="keyword">type</span> Builder <span class="keyword">struct</span> &#123;</span><br><span class="line">	builderMap ps.Map  <span class="comment">// ps.Map是下面定义的接口</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Map <span class="keyword">interface</span> &#123;</span><br><span class="line">	<span class="comment">// IsNil returns true if the Map is empty</span></span><br><span class="line">	IsNil() <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Set returns a new map in which key and value are associated.</span></span><br><span class="line">	<span class="comment">// If the key didn't exist before, it's created; otherwise, the</span></span><br><span class="line">	<span class="comment">// associated value is changed.</span></span><br><span class="line">	<span class="comment">// This operation is O(log N) in the number of keys.</span></span><br><span class="line">	Set(key <span class="keyword">string</span>, value Any) Map</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Delete returns a new map with the association for key, if any, removed.</span></span><br><span class="line">	<span class="comment">// This operation is O(log N) in the number of keys.</span></span><br><span class="line">	Delete(key <span class="keyword">string</span>) Map</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Lookup returns the value associated with a key, if any.  If the key</span></span><br><span class="line">	<span class="comment">// exists, the second return value is true; otherwise, false.</span></span><br><span class="line">	<span class="comment">// This operation is O(log N) in the number of keys.</span></span><br><span class="line">	Lookup(key <span class="keyword">string</span>) (Any, <span class="keyword">bool</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Size returns the number of key value pairs in the map.</span></span><br><span class="line">	<span class="comment">// This takes O(1) time.</span></span><br><span class="line">	Size() <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// ForEach executes a callback on each key value pair in the map.</span></span><br><span class="line">	ForEach(f <span class="function"><span class="keyword">func</span><span class="params">(key <span class="keyword">string</span>, val Any)</span>)</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Keys returns a slice with all keys in this map.</span></span><br><span class="line">	<span class="comment">// This operation is O(N) in the number of keys.</span></span><br><span class="line">	Keys() []<span class="keyword">string</span></span><br><span class="line"></span><br><span class="line">	String() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>builder.Builder</code>支持作为下列这些函数的参数调用</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Set</span><span class="params">(builder <span class="keyword">interface</span>&#123;&#125;, name <span class="keyword">string</span>, v <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">interface</span></span>&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Delete</span><span class="params">(builder <span class="keyword">interface</span>&#123;&#125;, name <span class="keyword">string</span>)</span> <span class="title">interface</span></span>&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Append</span><span class="params">(builder <span class="keyword">interface</span>&#123;&#125;, name <span class="keyword">string</span>, vs ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">interface</span></span>&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Extend</span><span class="params">(builder <span class="keyword">interface</span>&#123;&#125;, name <span class="keyword">string</span>, vs <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">interface</span></span>&#123;&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Get</span><span class="params">(builder <span class="keyword">interface</span>&#123;&#125;, name <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, <span class="keyword">bool</span>)</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetMap</span><span class="params">(builder <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">map</span>[<span class="title">string</span>]<span class="title">interface</span></span>&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ToSql实现"><a href="#ToSql实现" class="headerlink" title="ToSql实现"></a>ToSql实现</h2><p>插入操作最后是由<code>insertData</code>这个结构实现的，`ToSql``主要实现的也是字符串的拼接。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> insertData <span class="keyword">struct</span> &#123;</span><br><span class="line">	PlaceholderFormat PlaceholderFormat</span><br><span class="line">	RunWith           BaseRunner</span><br><span class="line">	Prefixes          []Sqlizer</span><br><span class="line">	StatementKeyword  <span class="keyword">string</span></span><br><span class="line">	Options           []<span class="keyword">string</span></span><br><span class="line">	Into              <span class="keyword">string</span></span><br><span class="line">	Columns           []<span class="keyword">string</span></span><br><span class="line">	Values            [][]<span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">	Suffixes          []Sqlizer</span><br><span class="line">	Select            *SelectBuilder</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *insertData)</span> <span class="title">ToSql</span><span class="params">()</span> <span class="params">(sqlStr <span class="keyword">string</span>, args []<span class="keyword">interface</span>&#123;&#125;, err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(d.Into) == <span class="number">0</span> &#123;</span><br><span class="line">		err = errors.New(<span class="string">"insert statements must specify a table"</span>)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(d.Values) == <span class="number">0</span> &amp;&amp; d.Select == <span class="literal">nil</span> &#123;</span><br><span class="line">		err = errors.New(<span class="string">"insert statements must have at least one set of values or select clause"</span>)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sql := &amp;bytes.Buffer&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(d.Prefixes) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		args, err = appendToSql(d.Prefixes, sql, <span class="string">" "</span>, args)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		sql.WriteString(<span class="string">" "</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> d.StatementKeyword == <span class="string">""</span> &#123;</span><br><span class="line">		sql.WriteString(<span class="string">"INSERT "</span>)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		sql.WriteString(d.StatementKeyword)</span><br><span class="line">		sql.WriteString(<span class="string">" "</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(d.Options) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		sql.WriteString(strings.Join(d.Options, <span class="string">" "</span>))</span><br><span class="line">		sql.WriteString(<span class="string">" "</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sql.WriteString(<span class="string">"INTO "</span>)</span><br><span class="line">	sql.WriteString(d.Into)</span><br><span class="line">	sql.WriteString(<span class="string">" "</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(d.Columns) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		sql.WriteString(<span class="string">"("</span>)</span><br><span class="line">		sql.WriteString(strings.Join(d.Columns, <span class="string">","</span>))</span><br><span class="line">		sql.WriteString(<span class="string">") "</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> d.Select != <span class="literal">nil</span> &#123;</span><br><span class="line">		args, err = d.appendSelectToSQL(sql, args)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		args, err = d.appendValuesToSQL(sql, args)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(d.Suffixes) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		sql.WriteString(<span class="string">" "</span>)</span><br><span class="line">		args, err = appendToSql(d.Suffixes, sql, <span class="string">" "</span>, args)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sqlStr, err = d.PlaceholderFormat.ReplacePlaceholders(sql.String())</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2020/12/09/go-%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90/" rel="next" title="golang系列(24)--逃逸分析">
+                  <i class="fa fa-chevron-left"></i> golang系列(24)--逃逸分析
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2020/12/11/go-gin-1/" rel="prev" title="golang系列(26)--gin源码阅读(1)">
+                  golang系列(26)--gin源码阅读(1) <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#基本使用"><span class="nav-number">1.</span> <span class="nav-text">基本使用</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Builder"><span class="nav-number">1.1.</span> <span class="nav-text">Builder</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#squirrel-Expr"><span class="nav-number">1.2.</span> <span class="nav-text">squirrel.Expr</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Prefix-Suffix"><span class="nav-number">1.3.</span> <span class="nav-text">Prefix, Suffix</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#源码解析"><span class="nav-number">2.</span> <span class="nav-text">源码解析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Builder-1"><span class="nav-number">2.1.</span> <span class="nav-text">Builder</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ToSql实现"><span class="nav-number">2.2.</span> <span class="nav-text">ToSql实现</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

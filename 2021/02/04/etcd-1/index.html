@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="etcd是一种开源的分布式统一键值存储数据库，用于分布式系统或计算机集群的共享配置、服务发现和的调度协调。etcd 有助于促进更加安全的自动更新，协调向主机调度的工作，并帮助设置容器的覆盖网络。它已经广泛用于云原生各大项目中。现在来学习一下它的源码实现。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang系列(35)--etcd源码阅读-lease">
+<meta property="og:url" content="http://yoursite.com/2021/02/04/etcd-1/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="etcd是一种开源的分布式统一键值存储数据库，用于分布式系统或计算机集群的共享配置、服务发现和的调度协调。etcd 有助于促进更加安全的自动更新，协调向主机调度的工作，并帮助设置容器的覆盖网络。它已经广泛用于云原生各大项目中。现在来学习一下它的源码实现。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-02-04T03:05:17.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.274Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2021/02/04/etcd-1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>golang系列(35)--etcd源码阅读-lease | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/02/04/etcd-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          golang系列(35)--etcd源码阅读-lease
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-02-04 11:05:17" itemprop="dateCreated datePublished" datetime="2021-02-04T11:05:17+08:00">2021-02-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><code>etcd</code>是一种开源的分布式统一键值存储数据库，用于分布式系统或计算机集群的共享配置、服务发现和的调度协调。etcd 有助于促进更加安全的自动更新，协调向主机调度的工作，并帮助设置容器的覆盖网络。它已经广泛用于云原生各大项目中。现在来学习一下它的源码实现。</p>
+<a id="more"></a>
+
+<p>源码<code>github</code>地址，<a href="https://github.com/etcd-io/etcd。" target="_blank" rel="noopener">https://github.com/etcd-io/etcd。</a></p>
+<p>下载源码后，可以看到<code>etcd</code>项目结构非常清晰。</p>
+<p>首先从<code>server</code>包开始阅读。</p>
+<h2 id="lease"><a href="#lease" class="headerlink" title="lease"></a>lease</h2><p><code>lease</code>包位于<code>etcd\sever</code>目录下。</p>
+<p><code>lease</code>中文是租约，类似于<code>redis</code>中的<code>TTL(Time To Live)</code>，用于实现过期时间。</p>
+<p><code>Lease</code>源码的定义如下,<code>Lease</code>结构体中<code>ID</code>是一个<code>int64</code>的标识，<code>ttl</code>是过期时间，<code>remainingTTL</code>是剩余过期时间。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Lease <span class="keyword">struct</span> &#123;</span><br><span class="line">	ID           LeaseID <span class="comment">// type LeaseID int64</span></span><br><span class="line">	ttl          <span class="keyword">int64</span> <span class="comment">// time to live of the lease in seconds</span></span><br><span class="line">	remainingTTL <span class="keyword">int64</span> <span class="comment">// remaining time to live in seconds, if zero valued it is considered unset and the full ttl should be used</span></span><br><span class="line">	<span class="comment">// expiryMu protects concurrent accesses to expiry</span></span><br><span class="line">	expiryMu sync.RWMutex</span><br><span class="line">	<span class="comment">// expiry is time when lease should expire. no expiration when expiry.IsZero() is true</span></span><br><span class="line">	expiry time.Time</span><br><span class="line"></span><br><span class="line">	<span class="comment">// mu protects concurrent accesses to itemSet</span></span><br><span class="line">	mu      sync.RWMutex</span><br><span class="line">	itemSet <span class="keyword">map</span>[LeaseItem]<span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	revokec <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Remaining</code>方法用于计算剩余过期时间，从源码上可以看出，<code>expiry</code>字段用于计算是否过期，当它为零时即永不过期。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Remaining returns the remaining time of the lease.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Lease)</span> <span class="title">Remaining</span><span class="params">()</span> <span class="title">time</span>.<span class="title">Duration</span></span> &#123;</span><br><span class="line">	l.expiryMu.RLock()</span><br><span class="line">	<span class="keyword">defer</span> l.expiryMu.RUnlock()</span><br><span class="line">	<span class="keyword">if</span> l.expiry.IsZero() &#123;</span><br><span class="line">		<span class="keyword">return</span> time.Duration(math.MaxInt64)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> time.Until(l.expiry)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>persistTo</code>是<code>Lease</code>持久化的方法，接收参数<code>b backend.Backend</code>和<code>ci cindex.ConsistentIndexer</code>都是接口，因此<code>Lease</code>能够支持不同的存储。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *Lease)</span> <span class="title">persistTo</span><span class="params">(b backend.Backend, ci cindex.ConsistentIndexer)</span></span> &#123;</span><br><span class="line">	key := int64ToBytes(<span class="keyword">int64</span>(l.ID))</span><br><span class="line"></span><br><span class="line">	lpb := leasepb.Lease&#123;ID: <span class="keyword">int64</span>(l.ID), TTL: l.ttl, RemainingTTL: l.remainingTTL&#125;</span><br><span class="line">	val, err := lpb.Marshal()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"failed to marshal lease proto item"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	b.BatchTx().Lock()</span><br><span class="line">	b.BatchTx().UnsafePut(leaseBucketName, key, val)</span><br><span class="line">	<span class="keyword">if</span> ci != <span class="literal">nil</span> &#123;</span><br><span class="line">		ci.UnsafeSave(b.BatchTx())</span><br><span class="line">	&#125;</span><br><span class="line">	b.BatchTx().Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Lessor"><a href="#Lessor" class="headerlink" title="Lessor"></a>Lessor</h2><p><code>Lessor</code>可以理解成房东，它是<code>lease</code>的管理者</p>
+<p><code>Lessor</code>定义是一个接口。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Lessor owns leases. It can grant, revoke, renew and modify leases for lessee.</span></span><br><span class="line"><span class="keyword">type</span> Lessor <span class="keyword">interface</span> &#123;</span><br><span class="line">	SetRangeDeleter(rd RangeDeleter)</span><br><span class="line">	SetCheckpointer(cp Checkpointer)</span><br><span class="line">	Revoke(id LeaseID) error</span><br><span class="line">	Checkpoint(id LeaseID, remainingTTL <span class="keyword">int64</span>) error</span><br><span class="line">	Attach(id LeaseID, items []LeaseItem) error</span><br><span class="line">	GetLease(item LeaseItem) LeaseID</span><br><span class="line">	Detach(id LeaseID, items []LeaseItem) error</span><br><span class="line">	Promote(extend time.Duration)</span><br><span class="line">	Demote()</span><br><span class="line">	Renew(id LeaseID) (<span class="keyword">int64</span>, error)</span><br><span class="line">	Lookup(id LeaseID) *Lease</span><br><span class="line">	Leases() []*Lease</span><br><span class="line">	ExpiredLeasesC() &lt;-<span class="keyword">chan</span> []*Lease</span><br><span class="line">	Recover(b backend.Backend, rd RangeDeleter)</span><br><span class="line">	Stop()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>lessor</code>是<code>Lessor</code>接口的实现。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> lessor <span class="keyword">struct</span> &#123;</span><br><span class="line">	mu sync.RWMutex</span><br><span class="line"></span><br><span class="line">	demotec <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">  <span class="comment">// 租约存储</span></span><br><span class="line">  leaseMap             <span class="keyword">map</span>[LeaseID]*Lease</span><br><span class="line">  <span class="comment">// 租约过期通知组件</span></span><br><span class="line">  leaseExpiredNotifier *LeaseExpiredNotifier</span><br><span class="line">  <span class="comment">// LeaseQueue是一个最小堆，用于获取当前过期的租约</span></span><br><span class="line">	leaseCheckpointHeap  LeaseQueue</span><br><span class="line">	itemMap              <span class="keyword">map</span>[LeaseItem]LeaseID</span><br><span class="line"></span><br><span class="line">	rd RangeDeleter</span><br><span class="line">  <span class="comment">// 确保 etcd 集群切换leader 后lease ttl 的准确计算</span></span><br><span class="line">	cp Checkpointer</span><br><span class="line">  <span class="comment">// 存储</span></span><br><span class="line">	b backend.Backend</span><br><span class="line"></span><br><span class="line">	minLeaseTTL <span class="keyword">int64</span></span><br><span class="line"></span><br><span class="line">	expiredC <span class="keyword">chan</span> []*Lease</span><br><span class="line">	stopC <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	doneC <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">	lg *zap.Logger</span><br><span class="line"></span><br><span class="line">	checkpointInterval time.Duration</span><br><span class="line">	expiredLeaseRetryInterval time.Duration</span><br><span class="line">	ci                        cindex.ConsistentIndexer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="LeaseQueue"><a href="#LeaseQueue" class="headerlink" title="LeaseQueue"></a>LeaseQueue</h2><p><code>Lessor</code>管理租约，需要定期清理过期的租约，当租约数量少的时候线性查找性能还不是问题，随着租约规模扩大淘汰过期租约就会成为瓶颈性能，堆这种优先队列是最好的解决办法。</p>
+<p><code>LeaseWithTime</code>是最小堆的元素，结构体中包含了每个租约的过期时间。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> LeaseWithTime <span class="keyword">struct</span> &#123;</span><br><span class="line">	id    LeaseID</span><br><span class="line">	time  time.Time <span class="comment">// 过期时间</span></span><br><span class="line">	index <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>LeaseQueue</code>也是通过实现标准库中<code>container/heap</code>包中的<code>Interface</code>实现堆。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> LeaseQueue []*LeaseWithTime</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq LeaseQueue)</span> <span class="title">Len</span><span class="params">()</span> <span class="title">int</span></span> &#123; <span class="keyword">return</span> <span class="built_in">len</span>(pq) &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq LeaseQueue)</span> <span class="title">Less</span><span class="params">(i, j <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> pq[i].time.Before(pq[j].time)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq LeaseQueue)</span> <span class="title">Swap</span><span class="params">(i, j <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	pq[i], pq[j] = pq[j], pq[i]</span><br><span class="line">	pq[i].index = i</span><br><span class="line">	pq[j].index = j</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq *LeaseQueue)</span> <span class="title">Push</span><span class="params">(x <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">	n := <span class="built_in">len</span>(*pq)</span><br><span class="line">	item := x.(*LeaseWithTime)</span><br><span class="line">	item.index = n</span><br><span class="line">	*pq = <span class="built_in">append</span>(*pq, item)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pq *LeaseQueue)</span> <span class="title">Pop</span><span class="params">()</span> <span class="title">interface</span></span>&#123;&#125; &#123;</span><br><span class="line">	old := *pq</span><br><span class="line">	n := <span class="built_in">len</span>(old)</span><br><span class="line">	item := old[n<span class="number">-1</span>]</span><br><span class="line">	item.index = <span class="number">-1</span> <span class="comment">// for safety</span></span><br><span class="line">	*pq = old[<span class="number">0</span> : n<span class="number">-1</span>]</span><br><span class="line">	<span class="keyword">return</span> item</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>有了堆实现过期查找就非常容易了，只需要不断的检查堆顶元素是否过期即可。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// expireExists returns true if expiry items exist.</span></span><br><span class="line"><span class="comment">// It pops only when expiry item exists.</span></span><br><span class="line"><span class="comment">// "next" is true, to indicate that it may exist in next attempt.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(le *lessor)</span> <span class="title">expireExists</span><span class="params">()</span> <span class="params">(l *Lease, ok <span class="keyword">bool</span>, next <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> le.leaseExpiredNotifier.Len() == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span>, <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	item := le.leaseExpiredNotifier.Poll()</span><br><span class="line">	l = le.leaseMap[item.id]</span><br><span class="line">	<span class="keyword">if</span> l == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// lease has expired or been revoked</span></span><br><span class="line">		<span class="comment">// no need to revoke (nothing is expiry)</span></span><br><span class="line">		le.leaseExpiredNotifier.Unregister() <span class="comment">// O(log N)</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">false</span>, <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	now := time.Now()</span><br><span class="line">	<span class="keyword">if</span> now.Before(item.time) <span class="comment">/* item.time: expiration time */</span> &#123;</span><br><span class="line">		<span class="comment">// Candidate expirations are caught up, reinsert this item</span></span><br><span class="line">		<span class="comment">// and no need to revoke (nothing is expiry)</span></span><br><span class="line">		<span class="keyword">return</span> l, <span class="literal">false</span>, <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// recheck if revoke is complete after retry interval</span></span><br><span class="line">	item.time = now.Add(le.expiredLeaseRetryInterval)</span><br><span class="line">	le.leaseExpiredNotifier.RegisterOrUpdate(item)</span><br><span class="line">	<span class="keyword">return</span> l, <span class="literal">true</span>, <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(le *lessor)</span> <span class="title">findDueScheduledCheckpoints</span><span class="params">(checkpointLimit <span class="keyword">int</span>)</span> []*<span class="title">pb</span>.<span class="title">LeaseCheckpoint</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> le.cp == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	now := time.Now()</span><br><span class="line">	cps := []*pb.LeaseCheckpoint&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> le.leaseCheckpointHeap.Len() &gt; <span class="number">0</span> &amp;&amp; <span class="built_in">len</span>(cps) &lt; checkpointLimit &#123;</span><br><span class="line">    <span class="comment">// 检查顶项元素是否过期，过过期直接返回</span></span><br><span class="line">		lt := le.leaseCheckpointHeap[<span class="number">0</span>]</span><br><span class="line">		<span class="keyword">if</span> lt.time.After(now) <span class="comment">/* lt.time: next checkpoint time */</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> cps</span><br><span class="line">		&#125;</span><br><span class="line">		heap.Pop(&amp;le.leaseCheckpointHeap)</span><br><span class="line">		<span class="keyword">var</span> l *Lease</span><br><span class="line">		<span class="keyword">var</span> ok <span class="keyword">bool</span></span><br><span class="line">		<span class="keyword">if</span> l, ok = le.leaseMap[lt.id]; !ok &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> !now.Before(l.expiry) &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		remainingTTL := <span class="keyword">int64</span>(math.Ceil(l.expiry.Sub(now).Seconds()))</span><br><span class="line">		<span class="keyword">if</span> remainingTTL &gt;= l.ttl &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> le.lg != <span class="literal">nil</span> &#123;</span><br><span class="line">			le.lg.Debug(<span class="string">"Checkpointing lease"</span>,</span><br><span class="line">				zap.Int64(<span class="string">"leaseID"</span>, <span class="keyword">int64</span>(lt.id)),</span><br><span class="line">				zap.Int64(<span class="string">"remainingTTL"</span>, remainingTTL),</span><br><span class="line">			)</span><br><span class="line">		&#125;</span><br><span class="line">		cps = <span class="built_in">append</span>(cps, &amp;pb.LeaseCheckpoint&#123;ID: <span class="keyword">int64</span>(lt.id), Remaining_TTL: remainingTTL&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> cps</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="LeaseExpiredNotifier"><a href="#LeaseExpiredNotifier" class="headerlink" title="LeaseExpiredNotifier"></a>LeaseExpiredNotifier</h2><p><code>LeaseExpiredNotifier</code>是一个租约过期通知组件。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> LeaseExpiredNotifier <span class="keyword">struct</span> &#123;</span><br><span class="line">	m     <span class="keyword">map</span>[LeaseID]*LeaseWithTime</span><br><span class="line">	queue LeaseQueue</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>前面提到的<code>expireExists</code>方法即是通过<code>LeaseExpiredNotifier</code>中的堆<code>LeaseQueue</code>来实现的。</p>
+<p><code>LeaseExpiredNotifier</code>的<code>Unregister</code>方法即为堆的<code>Pop</code>，<code>RegisterOrUpdate</code>则完成的是堆的修改或插入。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(mq *LeaseExpiredNotifier)</span> <span class="title">RegisterOrUpdate</span><span class="params">(item *LeaseWithTime)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> old, ok := mq.m[item.id]; ok &#123;</span><br><span class="line">		old.time = item.time</span><br><span class="line">		heap.Fix(&amp;mq.queue, old.index)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		heap.Push(&amp;mq.queue, item)</span><br><span class="line">		mq.m[item.id] = item</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(mq *LeaseExpiredNotifier)</span> <span class="title">Unregister</span><span class="params">()</span> *<span class="title">LeaseWithTime</span></span> &#123;</span><br><span class="line">	item := heap.Pop(&amp;mq.queue).(*LeaseWithTime)</span><br><span class="line">	<span class="built_in">delete</span>(mq.m, item.id)</span><br><span class="line">	<span class="keyword">return</span> item</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="loop"><a href="#loop" class="headerlink" title="loop"></a>loop</h2><p><code>newLessor</code>方法在新建<code>lessor</code>之后会起一个<code>goroutine</code>循环检查租约。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newLessor</span><span class="params">(lg *zap.Logger, b backend.Backend, cfg LessorConfig, ci cindex.ConsistentIndexer)</span> *<span class="title">lessor</span></span> &#123;</span><br><span class="line">	checkpointInterval := cfg.CheckpointInterval</span><br><span class="line">	expiredLeaseRetryInterval := cfg.ExpiredLeasesRetryInterval</span><br><span class="line">	<span class="keyword">if</span> checkpointInterval == <span class="number">0</span> &#123;</span><br><span class="line">		checkpointInterval = defaultLeaseCheckpointInterval</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> expiredLeaseRetryInterval == <span class="number">0</span> &#123;</span><br><span class="line">		expiredLeaseRetryInterval = defaultExpiredleaseRetryInterval</span><br><span class="line">	&#125;</span><br><span class="line">	l := &amp;lessor&#123;</span><br><span class="line">		leaseMap:                  <span class="built_in">make</span>(<span class="keyword">map</span>[LeaseID]*Lease),</span><br><span class="line">		itemMap:                   <span class="built_in">make</span>(<span class="keyword">map</span>[LeaseItem]LeaseID),</span><br><span class="line">		leaseExpiredNotifier:      newLeaseExpiredNotifier(),</span><br><span class="line">		leaseCheckpointHeap:       <span class="built_in">make</span>(LeaseQueue, <span class="number">0</span>),</span><br><span class="line">		b:                         b,</span><br><span class="line">		minLeaseTTL:               cfg.MinLeaseTTL,</span><br><span class="line">		checkpointInterval:        checkpointInterval,</span><br><span class="line">		expiredLeaseRetryInterval: expiredLeaseRetryInterval,</span><br><span class="line">		<span class="comment">// 收集失效的租约，缓冲长度16，避免堵塞</span></span><br><span class="line">		expiredC: <span class="built_in">make</span>(<span class="keyword">chan</span> []*Lease, <span class="number">16</span>),</span><br><span class="line">		stopC:    <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">		doneC:    <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">		lg:       lg,</span><br><span class="line">		ci:       ci,</span><br><span class="line">	&#125;</span><br><span class="line">	l.initAndRecover()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">go</span> l.runLoop()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> l</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>500毫秒一次循环检查并撤销过期租约，最后失效的租约都会写入<code>expiredC</code>这个channel中。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(le *lessor)</span> <span class="title">runLoop</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="built_in">close</span>(le.doneC)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		le.revokeExpiredLeases()</span><br><span class="line">		le.checkpointScheduledLeases()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-time.After(<span class="number">500</span> * time.Millisecond):</span><br><span class="line">		<span class="keyword">case</span> &lt;-le.stopC:</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// revokeExpiredLeases finds all leases past their expiry and sends them to expired channel for</span></span><br><span class="line"><span class="comment">// to be revoked.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(le *lessor)</span> <span class="title">revokeExpiredLeases</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> ls []*Lease</span><br><span class="line"></span><br><span class="line">	<span class="comment">// rate limit</span></span><br><span class="line">	revokeLimit := leaseRevokeRate / <span class="number">2</span></span><br><span class="line"></span><br><span class="line">	le.mu.RLock()</span><br><span class="line">	<span class="keyword">if</span> le.isPrimary() &#123;</span><br><span class="line">		ls = le.findExpiredLeases(revokeLimit)</span><br><span class="line">	&#125;</span><br><span class="line">	le.mu.RUnlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(ls) != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-le.stopC:</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		<span class="keyword">case</span> le.expiredC &lt;- ls:</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			<span class="comment">// the receiver of expiredC is probably busy handling</span></span><br><span class="line">			<span class="comment">// other stuff</span></span><br><span class="line">			<span class="comment">// let's try this next time after 500ms</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkpointScheduledLeases finds all scheduled lease checkpoints that are due and</span></span><br><span class="line"><span class="comment">// submits them to the checkpointer to persist them to the consensus log.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(le *lessor)</span> <span class="title">checkpointScheduledLeases</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> cps []*pb.LeaseCheckpoint</span><br><span class="line"></span><br><span class="line">	<span class="comment">// rate limit</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; leaseCheckpointRate/<span class="number">2</span>; i++ &#123;</span><br><span class="line">		le.mu.Lock()</span><br><span class="line">		<span class="comment">// 主节点</span></span><br><span class="line">		<span class="keyword">if</span> le.isPrimary() &#123;</span><br><span class="line">			cps = le.findDueScheduledCheckpoints(maxLeaseCheckpointBatchSize)</span><br><span class="line">		&#125;</span><br><span class="line">		le.mu.Unlock()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(cps) != <span class="number">0</span> &#123;</span><br><span class="line">			le.cp(context.Background(), &amp;pb.LeaseCheckpointRequest&#123;Checkpoints: cps&#125;)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(cps) &lt; maxLeaseCheckpointBatchSize &#123;</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2021/02/02/google-authenticator/" rel="next" title="身份认证器简化使用">
+                  <i class="fa fa-chevron-left"></i> 身份认证器简化使用
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2021/02/05/etcd-2/" rel="prev" title="golang系列(35)--etcd源码阅读-mvcc">
+                  golang系列(35)--etcd源码阅读-mvcc <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#lease"><span class="nav-number">1.</span> <span class="nav-text">lease</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Lessor"><span class="nav-number">2.</span> <span class="nav-text">Lessor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LeaseQueue"><span class="nav-number">3.</span> <span class="nav-text">LeaseQueue</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LeaseExpiredNotifier"><span class="nav-number">4.</span> <span class="nav-text">LeaseExpiredNotifier</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#loop"><span class="nav-number">5.</span> <span class="nav-text">loop</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

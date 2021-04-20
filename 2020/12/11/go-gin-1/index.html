@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="gin是golang里使用最为广泛的Web开发框架。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang系列(26)--gin源码阅读(1)">
+<meta property="og:url" content="http://yoursite.com/2020/12/11/go-gin-1/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="gin是golang里使用最为广泛的Web开发框架。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-12-11T03:38:33.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.267Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2020/12/11/go-gin-1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>golang系列(26)--gin源码阅读(1) | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/12/11/go-gin-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          golang系列(26)--gin源码阅读(1)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-11 11:38:33" itemprop="dateCreated datePublished" datetime="2020-12-11T11:38:33+08:00">2020-12-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><code>gin</code>是<code>golang</code>里使用最为广泛的<code>Web</code>开发框架。</p>
+<a id="more"></a>
+
+<h2 id="IRouter"><a href="#IRouter" class="headerlink" title="IRouter"></a>IRouter</h2><p><code>gin</code>把路由定义成接口，看下它的定义。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// IRouter defines all router handle interface includes single and group router.</span></span><br><span class="line"><span class="keyword">type</span> IRouter <span class="keyword">interface</span> &#123;</span><br><span class="line">	IRoutes</span><br><span class="line">	Group(<span class="keyword">string</span>, ...HandlerFunc) *RouterGroup</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// IRoutes defines all router handle interface.</span></span><br><span class="line"><span class="keyword">type</span> IRoutes <span class="keyword">interface</span> &#123;</span><br><span class="line">	Use(...HandlerFunc) IRoutes</span><br><span class="line"></span><br><span class="line">	Handle(<span class="keyword">string</span>, <span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">	Any(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">	GET(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">	POST(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">	DELETE(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">	PATCH(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">	PUT(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">	OPTIONS(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line">	HEAD(<span class="keyword">string</span>, ...HandlerFunc) IRoutes</span><br><span class="line"></span><br><span class="line">	StaticFile(<span class="keyword">string</span>, <span class="keyword">string</span>) IRoutes</span><br><span class="line">	Static(<span class="keyword">string</span>, <span class="keyword">string</span>) IRoutes</span><br><span class="line">	StaticFS(<span class="keyword">string</span>, http.FileSystem) IRoutes</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>内置的实现<code>IRouter</code>的结构体是<code>RouterGroup</code>，它是一系列相同前缀的路由的集合。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RouterGroup is used internally to configure router, a RouterGroup is associated with</span></span><br><span class="line"><span class="comment">// a prefix and an array of handlers (middleware).</span></span><br><span class="line"><span class="keyword">type</span> RouterGroup <span class="keyword">struct</span> &#123;</span><br><span class="line">	Handlers HandlersChain <span class="comment">// 请求处理器</span></span><br><span class="line">	basePath <span class="keyword">string</span>        <span class="comment">// 前缀</span></span><br><span class="line">	engine   *Engine       </span><br><span class="line">	root     <span class="keyword">bool</span>          <span class="comment">// 是否根节点</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> HandlersChain []HandlerFunc</span><br></pre></td></tr></table></figure>
+
+<h2 id="HandlerFunc"><a href="#HandlerFunc" class="headerlink" title="HandlerFunc"></a>HandlerFunc</h2><p><code>HandlerFunc</code>是一个非常重要的定义，用于处理请求，类似标准库<code>http</code>中定义的<code>HandlerFunc</code>。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// gin</span></span><br><span class="line"><span class="keyword">type</span> HandlerFunc <span class="function"><span class="keyword">func</span><span class="params">(*Context)</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// http</span></span><br><span class="line"><span class="keyword">type</span> HandlerFunc <span class="function"><span class="keyword">func</span><span class="params">(ResponseWriter, *Request)</span></span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Engine"><a href="#Engine" class="headerlink" title="Engine"></a>Engine</h2><p><code>Engine</code>是<code>gin</code>中<code>HTTP</code>服务的实体，它包含了路由、中间件及服务相关配置。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Engine <span class="keyword">struct</span> &#123;</span><br><span class="line">	RouterGroup</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 自动处理末尾反斜杠如 /foo/ -&gt; /foo</span></span><br><span class="line">	RedirectTrailingSlash <span class="keyword">bool</span></span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 自动处理路由中多余的项  /FOO and /..//Foo -&gt; /foo</span></span><br><span class="line">	RedirectFixedPath <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// method转换</span></span><br><span class="line">  HandleMethodNotAllowed <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// 省略。。。</span></span><br><span class="line"></span><br><span class="line">	pool             sync.Pool    <span class="comment">// Context池</span></span><br><span class="line">	trees            methodTrees  <span class="comment">// 路由树</span></span><br><span class="line">	maxParams        <span class="keyword">uint16</span>       <span class="comment">// poll最大上限</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Engine</code>实现了标准库<code>http</code>中的<code>Handler</code>接口，因此可以方便的同其它<code>Web</code>服务的组件集成。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// http</span></span><br><span class="line"><span class="keyword">type</span> Handler <span class="keyword">interface</span> &#123;</span><br><span class="line">	ServeHTTP(ResponseWriter, *Request)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// gin</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">ServeHTTP</span><span class="params">(w http.ResponseWriter, req *http.Request)</span></span> &#123;</span><br><span class="line">	c := engine.pool.Get().(*Context)</span><br><span class="line">	c.writermem.reset(w)</span><br><span class="line">	c.Request = req</span><br><span class="line">	c.reset()</span><br><span class="line"></span><br><span class="line">	engine.handleHTTPRequest(c)</span><br><span class="line">  <span class="comment">// 放入池子中</span></span><br><span class="line">	engine.pool.Put(c)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p><code>Engine</code>支持多种服务启动方式。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Run(addr ...<span class="keyword">string</span>) (err error)</span><br><span class="line">RunTLS(addr <span class="keyword">string</span>, certFile <span class="keyword">string</span>, keyFile <span class="keyword">string</span>) (err error)</span><br><span class="line">RunUnix(file <span class="keyword">string</span>) (err error)</span><br><span class="line">RunFd(fd <span class="keyword">int</span>) (err error)</span><br><span class="line">RunListener(listener net.Listener) (err error)</span><br></pre></td></tr></table></figure>
+
+<p>看下最常见的<code>Run</code>方法的源码，前面说到<code>Engine</code>实现了<code>Handler</code>接口，所以可以直接调用<code>http</code>的<code>ListenAndServe</code>方法启动服务。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">Run</span><span class="params">(addr ...<span class="keyword">string</span>)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; debugPrintError(err) &#125;()</span><br><span class="line"></span><br><span class="line">	address := resolveAddress(addr)</span><br><span class="line">	debugPrint(<span class="string">"Listening and serving HTTP on %s\n"</span>, address)</span><br><span class="line">	err = http.ListenAndServe(address, engine)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 两种参数方式</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">resolveAddress</span><span class="params">(addr []<span class="keyword">string</span>)</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">switch</span> <span class="built_in">len</span>(addr) &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="number">0</span>:</span><br><span class="line">		<span class="keyword">if</span> port := os.Getenv(<span class="string">"PORT"</span>); port != <span class="string">""</span> &#123;</span><br><span class="line">			debugPrint(<span class="string">"Environment variable PORT=\"%s\""</span>, port)</span><br><span class="line">			<span class="keyword">return</span> <span class="string">":"</span> + port</span><br><span class="line">		&#125;</span><br><span class="line">		debugPrint(<span class="string">"Environment variable PORT is undefined. Using port :8080 by default"</span>)</span><br><span class="line">		<span class="keyword">return</span> <span class="string">":8080"</span></span><br><span class="line">	<span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">		<span class="keyword">return</span> addr[<span class="number">0</span>]</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"too many parameters"</span>)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="RouteInfo"><a href="#RouteInfo" class="headerlink" title="RouteInfo"></a>RouteInfo</h2><p><code>RouteInfo</code>中存储了路由的基本信息。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RoutesInfo defines a RouteInfo array.</span></span><br><span class="line"><span class="keyword">type</span> RoutesInfo []RouteInfo</span><br><span class="line"></span><br><span class="line"><span class="comment">// RouteInfo represents a request route's specification which contains method and path and its handler.</span></span><br><span class="line"><span class="keyword">type</span> RouteInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">	Method      <span class="keyword">string</span></span><br><span class="line">	Path        <span class="keyword">string</span></span><br><span class="line">	Handler     <span class="keyword">string</span></span><br><span class="line">	HandlerFunc HandlerFunc</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过这个对象，可以获取服务中注册的所有路由。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Routes returns a slice of registered routes, including some useful information, such as:</span></span><br><span class="line"><span class="comment">// the http method, path and the handler name.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(engine *Engine)</span> <span class="title">Routes</span><span class="params">()</span> <span class="params">(routes RoutesInfo)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, tree := <span class="keyword">range</span> engine.trees &#123;</span><br><span class="line">		routes = iterate(<span class="string">""</span>, tree.method, routes, tree.root)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> routes</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">iterate</span><span class="params">(path, method <span class="keyword">string</span>, routes RoutesInfo, root *node)</span> <span class="title">RoutesInfo</span></span> &#123;</span><br><span class="line">	path += root.path</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(root.handlers) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		handlerFunc := root.handlers.Last()</span><br><span class="line">		routes = <span class="built_in">append</span>(routes, RouteInfo&#123;</span><br><span class="line">			Method:      method,</span><br><span class="line">			Path:        path,</span><br><span class="line">			Handler:     nameOfFunction(handlerFunc),</span><br><span class="line">			HandlerFunc: handlerFunc,</span><br><span class="line">		&#125;)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 递归实现</span></span><br><span class="line">	<span class="keyword">for</span> _, child := <span class="keyword">range</span> root.children &#123;</span><br><span class="line">		routes = iterate(path, method, routes, child)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> routes</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里又回到<code>engine</code>结构体中之前没有提到的<code>trees</code>这个<code>methodTrees</code>类型的成员变量，看下它的定义。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> methodTrees []methodTree</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> methodTree <span class="keyword">struct</span> &#123;</span><br><span class="line">	method <span class="keyword">string</span></span><br><span class="line">	root   *node</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> node <span class="keyword">struct</span> &#123;</span><br><span class="line">	path      <span class="keyword">string</span></span><br><span class="line">	indices   <span class="keyword">string</span></span><br><span class="line">	wildChild <span class="keyword">bool</span></span><br><span class="line">	nType     nodeType</span><br><span class="line">	priority  <span class="keyword">uint32</span></span><br><span class="line">	children  []*node</span><br><span class="line">	handlers  HandlersChain</span><br><span class="line">	fullPath  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>很明显，每种<code>method</code>都是一棵多叉树，<code>node</code>中<code>children</code>代表树的子节点。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2020/12/10/go-squirrel/" rel="next" title="golang系列(25)--SQL生成库squirrel">
+                  <i class="fa fa-chevron-left"></i> golang系列(25)--SQL生成库squirrel
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2020/12/12/go-gin-2/" rel="prev" title="golang系列(26)--gin源码阅读(2)">
+                  golang系列(26)--gin源码阅读(2) <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#IRouter"><span class="nav-number">1.</span> <span class="nav-text">IRouter</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HandlerFunc"><span class="nav-number">2.</span> <span class="nav-text">HandlerFunc</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Engine"><span class="nav-number">3.</span> <span class="nav-text">Engine</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RouteInfo"><span class="nav-number">4.</span> <span class="nav-text">RouteInfo</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

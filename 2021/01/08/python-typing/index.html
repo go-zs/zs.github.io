@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="Python3.9版本发布后再次提升了Typing系统的易用性。下面对当前的Typing做一个用法的总结。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python(1)——Typing系统用法总结">
+<meta property="og:url" content="http://yoursite.com/2021/01/08/python-typing/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="Python3.9版本发布后再次提升了Typing系统的易用性。下面对当前的Typing做一个用法的总结。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-01-08T06:35:21.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.271Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="typing">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2021/01/08/python-typing/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Python(1)——Typing系统用法总结 | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2021/01/08/python-typing/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Python(1)——Typing系统用法总结
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-01-08 14:35:21" itemprop="dateCreated datePublished" datetime="2021-01-08T14:35:21+08:00">2021-01-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/python/" itemprop="url" rel="index">
+                    <span itemprop="name">python</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><code>Python3.9</code>版本发布后再次提升了<code>Typing</code>系统的易用性。下面对当前的<code>Typing</code>做一个用法的总结。</p>
+<a id="more"></a>
+
+<h2 id="Type-Hint"><a href="#Type-Hint" class="headerlink" title="Type Hint"></a>Type Hint</h2><p>2015年9月 <code>Guido van Rossum</code> 在 Python 3.5 引入了一个类型系统，允许开发者指定变量类型。</p>
+<p>它的主要作用不是把<code>Python</code>变成静态语言，而是为了方便开发，供<code>IDE</code>使用，对代码运行不产生影响，运行时会过滤类型信息。</p>
+<h2 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h2><p>变量、函数参数后面都可以按<code>: type</code>的方式添加类型注释，函数的返回值则是以<code>-&gt;</code>的方式添加类型注解。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">greeting</span><span class="params">(name: str)</span> -&gt; str:</span></span><br><span class="line">    a: str = <span class="string">"x"</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">'Hello '</span> + name</span><br></pre></td></tr></table></figure>
+
+<h2 id="Type-aliases"><a href="#Type-aliases" class="headerlink" title="Type aliases"></a>Type aliases</h2><p>类型别名可以以变量赋值的方式创建。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Vector = list[float]</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">scale</span><span class="params">(scalar: float, vector: Vector)</span> -&gt; Vector:</span></span><br><span class="line">    <span class="keyword">return</span> [scalar * num <span class="keyword">for</span> num <span class="keyword">in</span> vector]</span><br><span class="line"></span><br><span class="line"><span class="comment"># typechecks; a list of floats qualifies as a Vector.</span></span><br><span class="line">new_vector = scale(<span class="number">2.0</span>, [<span class="number">1.0</span>, <span class="number">-4.2</span>, <span class="number">5.4</span>])</span><br></pre></td></tr></table></figure>
+
+<h2 id="NewType"><a href="#NewType" class="headerlink" title="NewType"></a>NewType</h2><p>自定义类型，允许将一个类定义成一个新的类型</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> NewType</span><br><span class="line"></span><br><span class="line">UserId = NewType(<span class="string">'UserId'</span>, int)</span><br><span class="line">some_id = UserId(<span class="number">524313</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="Callable"><a href="#Callable" class="headerlink" title="Callable"></a>Callable</h2><p>函数类型可以通过<code>Callable[[Arg1Type, Arg2Type], ReturnType]</code>的方式定义。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> collections.abc <span class="keyword">import</span> Callable</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">feeder</span><span class="params">(get_next_item: Callable[[], str])</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    <span class="comment"># Body</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">async_query</span><span class="params">(on_success: Callable[[int], None],</span></span></span><br><span class="line"><span class="function"><span class="params">                on_error: Callable[[int, Exception], None])</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    <span class="comment"># Body</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="范型"><a href="#范型" class="headerlink" title="范型"></a>范型</h2><p>范型可以实现保持入参与出参类型的一致。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> collections.abc <span class="keyword">import</span> Sequence</span><br><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> TypeVar</span><br><span class="line"></span><br><span class="line">T = TypeVar(<span class="string">'T'</span>)      <span class="comment"># Declare type variable</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">first</span><span class="params">(l: Sequence[T])</span> -&gt; T:</span>   <span class="comment"># Generic function</span></span><br><span class="line">    <span class="keyword">return</span> l[<span class="number">0</span>]</span><br></pre></td></tr></table></figure>
+
+<h2 id="Union，组合类型"><a href="#Union，组合类型" class="headerlink" title="Union，组合类型"></a>Union，组合类型</h2><p>联合类型 <code>Union[X, Y]</code>，非X即Y</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 会过滤冗余</span></span><br><span class="line">Union[int, str, int] == Union[int, str]</span><br></pre></td></tr></table></figure>
+
+<h2 id="Optinal"><a href="#Optinal" class="headerlink" title="Optinal"></a>Optinal</h2><p> Optional[X] 等价于 Union[X, None]。有默认值的参数本身就是可选参数。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">(arg: int = <span class="number">0</span>)</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">(arg: Optional[int])</span> -&gt; <span class="keyword">None</span>:</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="typing-Dict-typing-List-typing-Set-typing-Frozenset"><a href="#typing-Dict-typing-List-typing-Set-typing-Frozenset" class="headerlink" title="typing.Dict, typing.List, typing.Set, typing.Frozenset"></a>typing.Dict, typing.List, typing.Set, typing.Frozenset</h2><p>可以定义常用数据容器<code>dict</code>、<code>list</code>和<code>set</code>等的成员类型。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">count_words</span><span class="params">(text: str)</span> -&gt; Dict[str, int]:</span></span><br><span class="line">  ...</span><br><span class="line"></span><br><span class="line">T = TypeVar(<span class="string">'T'</span>, int, float)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">vec2</span><span class="params">(x: T, y: T)</span> -&gt; List[T]:</span></span><br><span class="line">    <span class="keyword">return</span> [x, y]</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">keep_positives</span><span class="params">(vector: Sequence[T])</span> -&gt; List[T]:</span></span><br><span class="line">    <span class="keyword">return</span> [item <span class="keyword">for</span> item <span class="keyword">in</span> vector <span class="keyword">if</span> item &gt; <span class="number">0</span>]</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="typing-TypeDict"><a href="#typing-TypeDict" class="headerlink" title="typing.TypeDict"></a>typing.TypeDict</h2><p>这个可以定义字典的结构，非常好用。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Point2D</span><span class="params">(TypedDict)</span>:</span></span><br><span class="line">    x: int</span><br><span class="line">    y: int</span><br><span class="line">    label: str</span><br><span class="line"></span><br><span class="line">a: Point2D = &#123;<span class="string">'x'</span>: <span class="number">1</span>, <span class="string">'y'</span>: <span class="number">2</span>, <span class="string">'label'</span>: <span class="string">'good'</span>&#125;  <span class="comment"># OK</span></span><br><span class="line">b: Point2D = &#123;<span class="string">'z'</span>: <span class="number">3</span>, <span class="string">'label'</span>: <span class="string">'bad'</span>&#125;           <span class="comment"># Fails type check</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">assert</span> Point2D(x=<span class="number">1</span>, y=<span class="number">2</span>, label=<span class="string">'first'</span>) == dict(x=<span class="number">1</span>, y=<span class="number">2</span>, label=<span class="string">'first'</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="Iterable"><a href="#Iterable" class="headerlink" title="Iterable"></a>Iterable</h2><p>定义一个指定类型的迭代器</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> collections.abc <span class="keyword">import</span> Iterable</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">zero_all_vars</span><span class="params">(vars: Iterable[LoggedVar[int]])</span> -&gt; <span class="keyword">None</span>:</span></span><br><span class="line">    <span class="keyword">for</span> var <span class="keyword">in</span> vars:</span><br><span class="line">        var.set(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="万能Any"><a href="#万能Any" class="headerlink" title="万能Any"></a>万能Any</h2><p>实在不知道类型怎么写可以用<code>Any</code>临时解决一下。如果都写<code>Any</code>那又何必使用<code>Type Hint</code>呢。。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> typing <span class="keyword">import</span> Any</span><br><span class="line"></span><br><span class="line">a = <span class="literal">None</span>    <span class="comment"># type: Any</span></span><br><span class="line">a = []      <span class="comment"># OK</span></span><br><span class="line">a = <span class="number">2</span>       <span class="comment"># OK</span></span><br><span class="line"></span><br><span class="line">s = <span class="string">''</span>      <span class="comment"># type: str</span></span><br><span class="line">s = a       <span class="comment"># OK</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">foo</span><span class="params">(item: Any)</span> -&gt; int:</span></span><br><span class="line">    <span class="comment"># Typechecks; 'item' could be any type,</span></span><br><span class="line">    <span class="comment"># and that type might have a 'bar' method</span></span><br><span class="line">    item.bar()</span><br><span class="line">    ...</span><br></pre></td></tr></table></figure>
+
+
+<p>现在<code>Python</code>的类型系统几个版本的迭代已经非常好用了，美中不足的是整个生态上还没有广泛普及。跟<code>TypeScript</code>一样，哪怕只有自己项目上添加类型，已经能够大幅提升工作效率。</p>
+<p>更完整的类型用法可以参考<a href="https://docs.python.org/3/library/typing.html" target="_blank" rel="noopener">官方文档</a>。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/python/" rel="tag"># python</a>
+              <a href="/tags/typing/" rel="tag"># typing</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2021/01/07/sqlalchemy-1/" rel="next" title="Python(1) SQLAlchemy库——连接与基本ORM操作">
+                  <i class="fa fa-chevron-left"></i> Python(1) SQLAlchemy库——连接与基本ORM操作
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2021/01/09/sqlalchemy-2/" rel="prev" title="Python SQLAlchemy库——(2)create_engine分析">
+                  Python SQLAlchemy库——(2)create_engine分析 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Type-Hint"><span class="nav-number">1.</span> <span class="nav-text">Type Hint</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基本使用"><span class="nav-number">2.</span> <span class="nav-text">基本使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Type-aliases"><span class="nav-number">3.</span> <span class="nav-text">Type aliases</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NewType"><span class="nav-number">4.</span> <span class="nav-text">NewType</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Callable"><span class="nav-number">5.</span> <span class="nav-text">Callable</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#范型"><span class="nav-number">6.</span> <span class="nav-text">范型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Union，组合类型"><span class="nav-number">7.</span> <span class="nav-text">Union，组合类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Optinal"><span class="nav-number">8.</span> <span class="nav-text">Optinal</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#typing-Dict-typing-List-typing-Set-typing-Frozenset"><span class="nav-number">9.</span> <span class="nav-text">typing.Dict, typing.List, typing.Set, typing.Frozenset</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#typing-TypeDict"><span class="nav-number">10.</span> <span class="nav-text">typing.TypeDict</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Iterable"><span class="nav-number">11.</span> <span class="nav-text">Iterable</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#万能Any"><span class="nav-number">12.</span> <span class="nav-text">万能Any</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

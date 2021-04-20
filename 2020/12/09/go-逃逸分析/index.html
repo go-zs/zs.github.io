@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="我们都知道golang是一门有GC的语言，并且频繁的GC会带来很大的性能开销。是不是所有生成对象都会产生GC呢？这个问题我们需要了解golang的逃逸分析。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang系列(24)--逃逸分析">
+<meta property="og:url" content="http://yoursite.com/2020/12/09/go-%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="我们都知道golang是一门有GC的语言，并且频繁的GC会带来很大的性能开销。是不是所有生成对象都会产生GC呢？这个问题我们需要了解golang的逃逸分析。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-12-09T05:40:26.000Z">
+<meta property="article:modified_time" content="2021-04-20T09:40:50.266Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2020/12/09/go-%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>golang系列(24)--逃逸分析 | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/12/09/go-%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          golang系列(24)--逃逸分析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-12-09 13:40:26" itemprop="dateCreated datePublished" datetime="2020-12-09T13:40:26+08:00">2020-12-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-20 17:40:50" itemprop="dateModified" datetime="2021-04-20T17:40:50+08:00">2021-04-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>我们都知道<code>golang</code>是一门有<code>GC</code>的语言，并且频繁的<code>GC</code>会带来很大的性能开销。是不是所有生成对象都会产生<code>GC</code>呢？这个问题我们需要了解<code>golang</code>的逃逸分析。</p>
+<a id="more"></a>
+
+<h2 id="堆栈"><a href="#堆栈" class="headerlink" title="堆栈"></a>堆栈</h2><p>首先需要了解一下什么是<code>堆栈</code>。它数据结构里的<code>heap</code>和<code>stack</code>是一个东西吗？</p>
+<p>这里说的<code>堆栈</code>是操作系统中的概念</p>
+<blockquote>
+<p>栈：由编译器自动分配释放,存放函数的参数值，局部变量的值等。其操作方式类似于数据结构中的栈，栈使用的是一级缓存,他们通常都是被调用时处于存储空间中，调用完毕立即释放。我们可以理解为在函数调用分配的内存上的变量会随着调用函数一起被操作系统回收。</p>
+</blockquote>
+<blockquote>
+<p>堆： 一般由程序员分配释放,若程序员不释放,程序结束时可能由系统回收，分配方式倒是类似于链表。堆则是存放在二级缓存中，生命周期由虚拟机的垃圾回收算法来决定（并不是一旦成为孤儿对象就能被回收）。所以调用这些对象的速度要相对来得低一些。</p>
+</blockquote>
+<ul>
+<li>变量分配在栈上的好处：存取速度比堆要快，随函数调用结束释放无需<code>GC</code></li>
+</ul>
+<h2 id="逃逸分析是什么"><a href="#逃逸分析是什么" class="headerlink" title="逃逸分析是什么"></a>逃逸分析是什么</h2><blockquote>
+<p>逃逸分析（Escape analysis）是指由编译器决定内存分配的位置，不需要程序员指定</p>
+</blockquote>
+<p>在函数中创建一个新的对象：</p>
+<ul>
+<li>如果分配在<code>栈</code>中，则函数执行结束可自动回收内存；</li>
+<li>如果分配在<code>堆</code>中，则函数执行结束可交给<code>GC</code>处理;</li>
+</ul>
+<p>不同于<code>JVM</code>语言，<code>golang</code>的逃逸分析也是编译期完成的。</p>
+<p>可以在编译时添加<code>-gcflags=-m</code>开启逃逸分析的<code>debug</code>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">go build -gcflags=-m main.go</span><br><span class="line">go build -gcflags="-m -l" main.go // -l 禁止内联编译</span><br></pre></td></tr></table></figure>
+
+<h2 id="逃逸场景"><a href="#逃逸场景" class="headerlink" title="逃逸场景"></a>逃逸场景</h2><h3 id="1-返回指针"><a href="#1-返回指针" class="headerlink" title="1.返回指针"></a>1.返回指针</h3><p>将指针作为返回值，一定会触发逃逸，很明显返回了指针，编译器会认为这个变量还会被使用。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> (</span><br><span class="line">	A <span class="keyword">struct</span> &#123;</span><br><span class="line">		name <span class="keyword">string</span></span><br><span class="line">	&#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">T</span><span class="params">()</span> *<span class="title">A</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;A&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	T()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $ go build -gcflags="-m -l"  main.go</span></span><br><span class="line"><span class="comment">// # command-line-arguments</span></span><br><span class="line"><span class="comment">// ./m.go:10:9: &amp;A literal escapes to heap</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-栈空间占用过大"><a href="#2-栈空间占用过大" class="headerlink" title="2.栈空间占用过大"></a>2.栈空间占用过大</h3><p>我们创建一个<code>slice</code>的时候，编译器会根据栈空间判断是否在<code>栈</code>上分配。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">S1</span><span class="params">()</span></span> &#123;</span><br><span class="line">	s := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">1000</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> index := <span class="keyword">range</span> s &#123;</span><br><span class="line">		s[index] = index</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">S2</span><span class="params">()</span></span> &#123;</span><br><span class="line">	s := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">10000</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> index := <span class="keyword">range</span> s &#123;</span><br><span class="line">		s[index] = index</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	S1()</span><br><span class="line">	S2()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $ go build -gcflags="-m -l"  main.go</span></span><br><span class="line"><span class="comment">// # command-line-arguments</span></span><br><span class="line"><span class="comment">// ./m.go:4:11: make([]int, 1000) does not escape</span></span><br><span class="line"><span class="comment">// ./m.go:13:11: make([]int, 10000) escapes to heap</span></span><br></pre></td></tr></table></figure>
+
+<p>由于逃逸分析发生在编译期，如果我们指定一个变量作为<code>slice</code>的长度，它就一定会发生逃逸。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">S</span><span class="params">(n <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	s := <span class="built_in">make</span>([]<span class="keyword">int</span>, n)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> index := <span class="keyword">range</span> s &#123;</span><br><span class="line">		s[index] = index</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	S(<span class="number">0</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $ go build -gcflags="-m -l"  main.go</span></span><br><span class="line"><span class="comment">// # command-line-arguments</span></span><br><span class="line"><span class="comment">// ./main.go:4:11: make([]int, n) escapes to heap</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-对象被引用"><a href="#3-对象被引用" class="headerlink" title="3.对象被引用"></a>3.对象被引用</h3><p>我们对一个对象取地址了，很多情况都会导致这个对象在函数外被访问到，所以这个对象会逃逸到堆上。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> (</span><br><span class="line">	A <span class="keyword">struct</span> &#123;</span><br><span class="line">		a *<span class="keyword">int</span></span><br><span class="line">	&#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">F</span><span class="params">()</span> <span class="title">A</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> b <span class="keyword">int</span></span><br><span class="line">	a := A&#123;a: &amp;b&#125;</span><br><span class="line">	<span class="keyword">return</span> a</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	F()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $ go build -gcflags="-m -l"  main.go</span></span><br><span class="line"><span class="comment">// # command-line-arguments</span></span><br><span class="line"><span class="comment">// ./main.go:10:6: moved to heap: b</span></span><br></pre></td></tr></table></figure>
+
+
+<h3 id="4-闭包引用对象逃逸"><a href="#4-闭包引用对象逃逸" class="headerlink" title="4.闭包引用对象逃逸"></a>4.闭包引用对象逃逸</h3><p>虽然没有直接对对象取地址进行引用，但是闭包本质上就是允许函数内部变量被外部函数访问，所以它也必须分配到堆上。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Fibonacci</span><span class="params">()</span> <span class="title">func</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	a, b := <span class="number">0</span>, <span class="number">1</span></span><br><span class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">		a, b = b, a+b</span><br><span class="line">		<span class="keyword">return</span> a</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	f := Fibonacci()</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="number">10</span>; i++ &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"Fibonacci: %d\n"</span>, f())</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// $ go build -gcflags="-m -l"  main.go</span></span><br><span class="line"><span class="comment">// # command-line-arguments</span></span><br><span class="line"><span class="comment">// ./main.go:6:2: moved to heap: a</span></span><br><span class="line"><span class="comment">// ./main.go:6:5: moved to heap: b</span></span><br><span class="line"><span class="comment">// ./main.go:7:9: func literal escapes to heap</span></span><br><span class="line"><span class="comment">// ./main.go:17:13: ... argument does not escape</span></span><br><span class="line"><span class="comment">// ./main.go:17:34: f() escapes to heap</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="官网说明"><a href="#官网说明" class="headerlink" title="官网说明"></a>官网说明</h2><p>关于分配<code>golang</code>的官方说明如下：</p>
+<blockquote>
+<p>From a correctness standpoint, you don’t need to know. Each variable in Go exists as long as there are references to it. The storage location chosen by the implementation is irrelevant to the semantics of the language.</p>
+<p>The storage location does have an effect on writing efficient programs. When possible, the Go compilers will allocate variables that are local to a function in that function’s stack frame.</p>
+<p>However, if the compiler cannot prove that the variable is not referenced after the function returns, then the compiler must allocate the variable on the garbage-collected heap to avoid dangling pointer errors. Also, if a local variable is very large, it might make more sense to store it on the heap rather than the stack.</p>
+<p>In the current compilers, if a variable has its address taken, that variable is a candidate for allocation on the heap. However, a basic escape analysis recognizes some cases when such variables will not live past the return from the function and can reside on the stack.</p>
+</blockquote>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2020/12/01/jetbrains-2/" rel="next" title="jetbrains技巧总结(2)——实用热键">
+                  <i class="fa fa-chevron-left"></i> jetbrains技巧总结(2)——实用热键
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2020/12/10/go-squirrel/" rel="prev" title="golang系列(25)--SQL生成库squirrel">
+                  golang系列(25)--SQL生成库squirrel <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#堆栈"><span class="nav-number">1.</span> <span class="nav-text">堆栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#逃逸分析是什么"><span class="nav-number">2.</span> <span class="nav-text">逃逸分析是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#逃逸场景"><span class="nav-number">3.</span> <span class="nav-text">逃逸场景</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-返回指针"><span class="nav-number">3.1.</span> <span class="nav-text">1.返回指针</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-栈空间占用过大"><span class="nav-number">3.2.</span> <span class="nav-text">2.栈空间占用过大</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-对象被引用"><span class="nav-number">3.3.</span> <span class="nav-text">3.对象被引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-闭包引用对象逃逸"><span class="nav-number">3.4.</span> <span class="nav-text">4.闭包引用对象逃逸</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#官网说明"><span class="nav-number">4.</span> <span class="nav-text">官网说明</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

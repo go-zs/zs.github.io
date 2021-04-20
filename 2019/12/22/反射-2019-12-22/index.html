@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <link rel="alternate" href="/atom.xml" title="zs的技术博客" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.5.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":-1},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="反射是 Go 语言比较重要的一个特性之一，虽然在大多数的应用和服务中并不常见，但是很多框架都依赖 Go 语言的反射机制实现一些动态的功能。作为一门静态语言，Golang 在设计上都非常简洁，所以在语法上其实并没有较强的表达能力，但是 Go 语言为我们提供的 reflect 包提供的动态特性却能够弥补它在语法上的一些劣势。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang系列(13)——反射">
+<meta property="og:url" content="http://yoursite.com/2019/12/22/%E5%8F%8D%E5%B0%84-2019-12-22/index.html">
+<meta property="og:site_name" content="zs的技术博客">
+<meta property="og:description" content="反射是 Go 语言比较重要的一个特性之一，虽然在大多数的应用和服务中并不常见，但是很多框架都依赖 Go 语言的反射机制实现一些动态的功能。作为一门静态语言，Golang 在设计上都非常简洁，所以在语法上其实并没有较强的表达能力，但是 Go 语言为我们提供的 reflect 包提供的动态特性却能够弥补它在语法上的一些劣势。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-12-22T09:58:54.000Z">
+<meta property="article:modified_time" content="2019-12-22T09:58:54.000Z">
+<meta property="article:author" content="zs">
+<meta property="article:tag" content="golang">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2019/12/22/%E5%8F%8D%E5%B0%84-2019-12-22/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>golang系列(13)——反射 | zs的技术博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">zs的技术博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/12/22/%E5%8F%8D%E5%B0%84-2019-12-22/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zs">
+      <meta itemprop="description" content="你不努力怎么知道你不是奇迹">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="zs的技术博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          golang系列(13)——反射
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-22 17:58:54" itemprop="dateCreated datePublished" datetime="2019-12-22T17:58:54+08:00">2019-12-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>反射是 <code>Go</code> 语言比较重要的一个特性之一，虽然在大多数的应用和服务中并不常见，但是很多框架都依赖 <code>Go</code> 语言的反射机制实现一些动态的功能。作为一门静态语言，<code>Golang</code> 在设计上都非常简洁，所以在语法上其实并没有较强的表达能力，但是 <code>Go</code> 语言为我们提供的 <code>reflect</code> 包提供的动态特性却能够弥补它在语法上的一些劣势。</p>
+<a id="more"></a>
+
+<h2 id="Type"><a href="#Type" class="headerlink" title="Type"></a>Type</h2><p>类型 <code>Type</code> 是 <code>Golang</code> 反射包中定义的一个接口，我们可以使用 <code>TypeOf</code> 函数获取任意值的变量的的类型，我们能从这个接口中看到非常多有趣的方法，<code>MethodByName</code> 可以获取当前类型对应方法的引用、<code>Implements</code> 可以判断当前类型是否实现了某个接口：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Type <span class="keyword">interface</span> &#123;</span><br><span class="line">        Align() <span class="keyword">int</span></span><br><span class="line">        FieldAlign() <span class="keyword">int</span></span><br><span class="line">        Method(<span class="keyword">int</span>) Method</span><br><span class="line">        MethodByName(<span class="keyword">string</span>) (Method, <span class="keyword">bool</span>)</span><br><span class="line">        NumMethod() <span class="keyword">int</span></span><br><span class="line">        Name() <span class="keyword">string</span></span><br><span class="line">        PkgPath() <span class="keyword">string</span></span><br><span class="line">        Size() <span class="keyword">uintptr</span></span><br><span class="line">        String() <span class="keyword">string</span></span><br><span class="line">        Kind() Kind</span><br><span class="line">        Implements(u Type) <span class="keyword">bool</span></span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Value"><a href="#Value" class="headerlink" title="Value"></a>Value</h2><p>反射包中 <code>Value</code> 的类型却与 <code>Type</code> 不同，<code>Type</code> 是一个接口类型，但是 <code>Value</code> 在 <code>reflect</code> 包中的定义是一个结构体，这个结构体没有任何对外暴露的成员变量，但是却提供了很多方法让我们获取或者写入 Value 结构体中存储的数据</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Value <span class="keyword">struct</span> &#123;</span><br><span class="line">        <span class="comment">// contains filtered or unexported fields</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v Value)</span> <span class="title">Addr</span><span class="params">()</span> <span class="title">Value</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v Value)</span> <span class="title">Bool</span><span class="params">()</span> <span class="title">bool</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v Value)</span> <span class="title">Bytes</span><span class="params">()</span> []<span class="title">byte</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(v Value)</span> <span class="title">Float</span><span class="params">()</span> <span class="title">float64</span></span></span><br><span class="line"><span class="comment">// ...</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="反射法则"><a href="#反射法则" class="headerlink" title="反射法则"></a>反射法则</h2><p>运行时反射是程序在运行期间检查其自身结构的一种方式，它是 <code>元编程</code> 的一种，但是它带来的灵活性也是一把双刃剑，过量的使用反射会使我们的程序逻辑变得难以理解并且运行缓慢，我们在这一节中就会介绍 <code>Go</code> 语言反射的三大法则，这能够帮助我们更好地理解反射的作用。</p>
+<ol>
+<li>从接口值可反射出反射对象；</li>
+<li>从反射对象可反射出接口值；</li>
+<li>要修改反射对象，其值必须可设置；</li>
+</ol>
+<h3 id="获得对象类型"><a href="#获得对象类型" class="headerlink" title="获得对象类型"></a>获得对象类型</h3><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"reflect"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	author := <span class="string">"draven"</span></span><br><span class="line">	fmt.Println(<span class="string">"TypeOf author:"</span>, reflect.TypeOf(author))</span><br><span class="line">	fmt.Println(<span class="string">"ValueOf author:"</span>, reflect.ValueOf(author))</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 输出</span></span><br><span class="line"><span class="comment">// TypeOf author: string</span></span><br><span class="line"><span class="comment">// ValueOf author: draven</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="获得对象值"><a href="#获得对象值" class="headerlink" title="获得对象值"></a>获得对象值</h3><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">v := reflect.ValueOf(<span class="number">1</span>)</span><br><span class="line">v.Interface&#123;&#125;.(<span class="keyword">int</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="修改值"><a href="#修改值" class="headerlink" title="修改值"></a>修改值</h3><p><code>Go</code> 语言反射的最后一条法则是与值是否可以被更改相关的，如果我们想要更新一个 <code>reflect.Value</code>，那么它持有的值一定是可以被更新的。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	i := <span class="number">1</span></span><br><span class="line">	v := reflect.ValueOf(i)</span><br><span class="line">	v.SetInt(<span class="number">10</span>)</span><br><span class="line">	fmt.Println(i)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 输出</span></span><br><span class="line"><span class="comment">// panic: reflect: reflect.flag.mustBeAssignable using unaddressable value</span></span><br></pre></td></tr></table></figure>
+
+<p>想要修改原有的变量我们只能通过如下所示的方法，首先通过 <code>reflect.ValueOf</code> 获取变量指针，然后通过 <code>Elem</code> 方法获取指针指向的变量并调用 <code>SetInt</code> 方法更新变量的值：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	i := <span class="number">1</span></span><br><span class="line">	v := reflect.ValueOf(&amp;i)</span><br><span class="line">	v.Elem().SetInt(<span class="number">10</span>)</span><br><span class="line">	fmt.Println(i)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// output</span></span><br><span class="line"><span class="comment">// 10</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="反射原理"><a href="#反射原理" class="headerlink" title="反射原理"></a>反射原理</h2><h3 id="类型和值"><a href="#类型和值" class="headerlink" title="类型和值"></a>类型和值</h3><p><code>Golang</code> 的 <code>interface{}</code> 类型在语言内部都是通过 <code>emptyInterface</code> 这个结体来表示的，其中包含一个 <code>rtype</code> 字段用于表示变量的类型以及一个 <code>word</code> 字段指向内部封装的数据：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> emptyInterface <span class="keyword">struct</span> &#123;</span><br><span class="line">	typ  *rtype</span><br><span class="line">	word unsafe.Pointer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>用于获取变量类型的 <code>TypeOf</code> 函数就是将传入的 <code>i</code> 变量强制转换成 <code>emptyInterface</code> 类型并获取其中存储的类型信息 <code>rtype</code></p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">TypeOf</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">Type</span></span> &#123;</span><br><span class="line">	eface := *(*emptyInterface)(unsafe.Pointer(&amp;i))</span><br><span class="line">	<span class="keyword">return</span> toType(eface.typ)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">toType</span><span class="params">(t *rtype)</span> <span class="title">Type</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> t == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> t</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>rtype</code> 就是一个实现了 <code>Type</code> 接口的接口体，我们能在 <code>reflect</code> 包中找到如下所示的 <code>Name</code> 方法帮助我们获取当前类型的名称等信息：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *rtype)</span> <span class="title">String</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	s := t.nameOff(t.str).name()</span><br><span class="line">	<span class="keyword">if</span> t.tflag&amp;tflagExtraStar != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> s[<span class="number">1</span>:]</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>TypeOf</code> 函数的实现原理其实并不复杂，它只是将一个 <code>interface{}</code> 变量转换成了内部的 <code>emptyInterface</code> 表示，然后从中获取相应的类型信息。</p>
+<p>用于获取接口值 <code>Value</code> 的函数 <code>ValueOf</code> 实现也非常简单，在该函数中我们先调用了 <code>escapes</code> 函数保证当前值逃逸到堆上，然后通过 <code>unpackEface</code> 方法从接口中获取 <code>Value</code> 结构体：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ValueOf</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">Value</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> i == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> Value&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	escapes(i)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> unpackEface(i)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">unpackEface</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">Value</span></span> &#123;</span><br><span class="line">	e := (*emptyInterface)(unsafe.Pointer(&amp;i))</span><br><span class="line">	t := e.typ</span><br><span class="line">	<span class="keyword">if</span> t == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> Value&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	f := flag(t.Kind())</span><br><span class="line">	<span class="keyword">if</span> ifaceIndir(t) &#123;</span><br><span class="line">		f |= flagIndir</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> Value&#123;t, e.word, f&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>unpackEface</code> 函数会将传入的接口 <code>interface{}</code> 转换成 <code>emptyInterface</code> 结构体然后将其中表示接口值类型、指针以及值的类型包装成 <code>Value</code> 结构体并返回。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/golang/" rel="tag"># golang</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+                <a href="/2019/12/19/context-2019-12-19/" rel="next" title="golang系列(12)——Context上下文">
+                  <i class="fa fa-chevron-left"></i> golang系列(12)——Context上下文
+                </a>
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+                <a href="/2019/12/27/%E5%AE%9A%E6%97%B6%E5%99%A8-2019-12-27/" rel="prev" title="golang系列(14)——定时器">
+                  golang系列(14)——定时器 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Type"><span class="nav-number">1.</span> <span class="nav-text">Type</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Value"><span class="nav-number">2.</span> <span class="nav-text">Value</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#反射法则"><span class="nav-number">3.</span> <span class="nav-text">反射法则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#获得对象类型"><span class="nav-number">3.1.</span> <span class="nav-text">获得对象类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获得对象值"><span class="nav-number">3.2.</span> <span class="nav-text">获得对象值</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#修改值"><span class="nav-number">3.3.</span> <span class="nav-text">修改值</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#反射原理"><span class="nav-number">4.</span> <span class="nav-text">反射原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#类型和值"><span class="nav-number">4.1.</span> <span class="nav-text">类型和值</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zs</p>
+  <div class="site-description" itemprop="description">你不努力怎么知道你不是奇迹</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">77</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zs</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.5.0
+  </div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

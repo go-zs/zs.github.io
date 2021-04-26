@@ -234,7 +234,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2021-04-23 15:32:35 / 修改时间：16:38:28" itemprop="dateCreated datePublished" datetime="2021-04-23T15:32:35+08:00">2021-04-23</time>
+              <time title="创建时间：2021-04-23 15:32:35 / 修改时间：17:27:46" itemprop="dateCreated datePublished" datetime="2021-04-23T15:32:35+08:00">2021-04-23</time>
             </span>
 
           
@@ -281,7 +281,7 @@
 
 <p>执行<code>make test.c</code>，会创建<code>test.c</code>文件。</p>
 <p><code>%.o:%.c</code>这种模式能匹配到类似<code>1.o:1.c</code>这种。</p>
-<h3 id="自动变量"><a href="#自动变量" class="headerlink" title="自动变量"></a>自动变量</h3><h4 id="-1"><a href="#-1" class="headerlink" title></a></h4><h2 id="常见的坑"><a href="#常见的坑" class="headerlink" title="常见的坑"></a>常见的坑</h2><p>经常编写一个Makefile，粘贴过来，运行就会如下的错误。这个是因为<code>Makefile</code>换行只能用<code>tab</code>，而不能用空格。如果用<code>vim</code>，我们可能配置了<code>:set expandtab</code>，<code>tab</code>自动转换成空格，这时候需要输入命令<code>:set noexpandtab</code>。</p>
+<h3 id="自动变量"><a href="#自动变量" class="headerlink" title="自动变量"></a>自动变量</h3><h4 id="指当前目标，make-name中-指的就是name"><a href="#指当前目标，make-name中-指的就是name" class="headerlink" title="$@ 指当前目标，make name中$@指的就是name"></a>$@ 指当前目标，<code>make name</code>中<code>$@</code>指的就是<code>name</code></h4><h4 id="lt-指代第一个前置条件，如make-name中-lt-指的就是prev"><a href="#lt-指代第一个前置条件，如make-name中-lt-指的就是prev" class="headerlink" title="$&lt; 指代第一个前置条件，如make name中$&lt;指的就是prev"></a>$&lt; 指代第一个前置条件，如<code>make name</code>中<code>$&lt;</code>指的就是<code>prev</code></h4><h4 id="指所有前置条件"><a href="#指所有前置条件" class="headerlink" title="$^ 指所有前置条件"></a>$^ 指所有前置条件</h4><h4 id="指向-匹配的部分，如make-test-c中-指的就是test"><a href="#指向-匹配的部分，如make-test-c中-指的就是test" class="headerlink" title="$* 指向%匹配的部分，如make test.c中$*指的就是test"></a>$* 指向%匹配的部分，如<code>make test.c</code>中<code>$*</code>指的就是<code>test</code></h4><h2 id="常见的坑"><a href="#常见的坑" class="headerlink" title="常见的坑"></a>常见的坑</h2><p>经常编写一个Makefile，粘贴过来，运行就会如下的错误。这个是因为<code>Makefile</code>换行只能用<code>tab</code>，而不能用空格。如果用<code>vim</code>，我们可能配置了<code>:set expandtab</code>，<code>tab</code>自动转换成空格，这时候需要输入命令<code>:set noexpandtab</code>。</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Makefile:2: *** missing separator.  Stop.</span><br></pre></td></tr></table></figure>
 
       

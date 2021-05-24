@@ -1,0 +1,29 @@
+
+@startuml
+!include https://raw.githubusercontent.com/bschwarz/puml-themes/master/themes/bluegray/puml-theme-bluegray.puml
+
+actor actor as 用户
+control control as 认证中心
+用户 -> 认证中心: 登录操作
+认证中心 -> 缓存: 存放token
+认证中心 -> 用户: 返回token
+用户 -> 认证中心: 携带token再次访问
+认证中心 -> 缓存: 获取用户token
+缓存 -> 认证中心: 返回token
+认证中心 -> 业务服务: 校验token成功跳转其它业务服务
+@enduml
+
+
+@startuml
+actor Bob #red
+' actor 和 participant 只在外观上有区别
+participant Alice
+participant "很长很长很长\n的名字" as L #99FF99
+/' 也可以这样声明：
+   participant L as "很长很长很长\n的名字"  #99FF99
+  '/
+
+Alice->Bob: 认证请求
+Bob->Alice: 认证响应
+Bob->L: 记录事务日志
+@enduml

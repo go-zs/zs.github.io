@@ -43,7 +43,7 @@ deactivate 认证中心
 
 可以用`participant`关键字声明参与者，声明也可以控制参与者的图标、颜色以及参与者之间顺序。
 
-···planuml
+```planuml
 @startuml
 actor Bob #red
 ' actor 和 participant 只在外观上有区别
